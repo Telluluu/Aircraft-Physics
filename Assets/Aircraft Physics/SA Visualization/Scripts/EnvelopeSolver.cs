@@ -1,10 +1,13 @@
-using UnityEngine;
 using System;
+using System.Threading.Tasks;
 
 public class EnvelopeSolver
 {
+    private const float Deg2Rad = (float)(Math.PI / 180.0);
+    private const float Rad2Deg = (float)(180.0 / Math.PI);
+
     private const float G = 9.81f;
-    private const float TIME_STEP = 0.05f;
+    private const float TIME_STEP = 0.1f;
     private const float MAX_FLIGHT_TIME = 180f;
     private const float HIT_THRESHOLD = 100.0f;
     private const float BISECTION_TOLERANCE = 10.0f;
@@ -36,6 +39,20 @@ public class EnvelopeSolver
         public float x, z, v, psi, time;
     }
 
+    public static float DeltaAngle(float current, float target)
+    {
+        float num = (target - current) % 360f;
+        if (num < -180f)
+        {
+            num += 360f;
+        }
+        else if (num > 180f)
+        {
+            num -= 360f;
+        }
+        return num;
+    }
+
     // 计算最大发射距离 Rmax
     public float CalculateMaxRange(MissileParams missile, TargetParams target)
     {
@@ -44,7 +61,7 @@ public class EnvelopeSolver
         float finalRange = 0f;
 
         // 论文 2.2 二分法循环
-        for (int i = 0; i < 30; i++)
+        for (int i = 0; i < 20; i++)
         {
             float checkRange = (minRange + maxRange) / 2f;
 
@@ -69,7 +86,7 @@ public class EnvelopeSolver
         float maxRange = rMaxResult; // 上限为已解算出的最大发射距离
         float finalRange = -1.0f;
 
-        for (int i = 0; i < 30; i++)
+        for (int i = 0; i < 20; i++)
         {
             float checkRange = (minRange + maxRange) / 2f;
 
@@ -105,8 +122,8 @@ public class EnvelopeSolver
 
         float tx = R0;
         float tz = 0;
-        float tPsi = tParams.initialAspect * Mathf.Deg2Rad; // 目标初始航向
-        float minRT = float.MaxValue;
+        float tPsi = tParams.initialAspect * Deg2Rad; // 目标初始航向
+
         float currentQ = 0;
         float lastQ = 0;
         while (mState.time < MAX_FLIGHT_TIME)
@@ -118,47 +135,43 @@ public class EnvelopeSolver
                 case 1: dPsiT = 0; break; // 直线
                 case 2: dPsiT = (G * tParams.maneuverG) / tParams.velocityMag; break; // 圆周
                 case 3: // 正方形
-                    float sinTerm = Mathf.Sin(mState.time - tParams.maneuverPeriod);
-                    dPsiT = (Mathf.Abs(sinTerm) > 0.001f) ?
+                    float sinTerm = (float)Math.Sin(mState.time - tParams.maneuverPeriod);
+                    dPsiT = ((float)Math.Abs(sinTerm) > 0.001f) ?
                             -(G * tParams.maneuverG) / (tParams.velocityMag * sinTerm) : 0;
                     break;
             }
             tPsi += dPsiT * TIME_STEP;
-            tx += tParams.velocityMag * Mathf.Cos(tPsi) * TIME_STEP; // 公式(6)
-            tz -= tParams.velocityMag * Mathf.Sin(tPsi) * TIME_STEP; // 公式(6) 注意负号
+            tx += tParams.velocityMag * (float)Math.Cos(tPsi) * TIME_STEP; // 公式(6)
+            tz -= tParams.velocityMag * (float)Math.Sin(tPsi) * TIME_STEP; // 公式(6) 注意负号
 
             // --- B. 几何关系与命中判定 (论文 1.2 公式 1) ---
             float dx = tx - mState.x;
             float dz = tz - mState.z;
-            float RT = Mathf.Sqrt(dx * dx + dz * dz);
+            float RT2 = dx * dx + dz * dz;
 
-            if (RT < minRT)
-                minRT = RT;
-
-            if (RT < HIT_THRESHOLD)
+            if (RT2 < HIT_THRESHOLD * HIT_THRESHOLD)
             {
-                // ("R0 = " + R0 + "时命中! minRT = " + minRT);
                 return true; // 命中
             }
 
             // 采样法计算视线角变化率
             // 1. 计算当前视线角 (弧度)
-            currentQ = Mathf.Atan2(-dz, dx);
+            currentQ = (float)Math.Atan2(-dz, dx);
 
             // 2. 计算 q_dot
             float q_dot = 0;
             if (mState.time > 0) // 第一次特殊化处理
             {
                 // DeltaAngle 返回的是角度差 (-180 到 180)
-                float diffDeg = Mathf.DeltaAngle(lastQ * Mathf.Rad2Deg, currentQ * Mathf.Rad2Deg);
-                q_dot = (diffDeg * Mathf.Deg2Rad) / TIME_STEP;
+                float diffDeg = DeltaAngle(lastQ * Rad2Deg, currentQ * Rad2Deg);
+                q_dot = (diffDeg * Deg2Rad) / TIME_STEP;
             }
             lastQ = currentQ; // 更新历史记录
 
             // 以g为单位的法向过载nz
             float nz = (mParams.guidanceGain * mState.v * q_dot) / G;
             // 不能超过导弹舵面提供的最大过载
-            nz = Mathf.Clamp(nz, -mParams.maxOverload, mParams.maxOverload);
+            nz = (float)Math.Clamp(nz, -mParams.maxOverload, mParams.maxOverload);
             // --- D. RK4 积分更新导弹 (论文 1.3 & 2.1 公式 2) ---
             mState = RungeKuttaStep(mState, mParams, nz);
 
@@ -203,8 +216,8 @@ public class EnvelopeSolver
         float totalDrag = dragZero + inducedDrag;
         d.v = (mp.thrust - totalDrag) / mp.mass; // Vm_dot = (T-D)/m
         d.psi = (s.v > 0.1f) ? (G * nz) / s.v : 0; // PsiM_dot = g*nz/Vm
-        d.x = s.v * Mathf.Cos(s.psi); // XM_dot
-        d.z = -s.v * Mathf.Sin(s.psi); // ZM_dot
+        d.x = s.v * (float)Math.Cos(s.psi); // XM_dot
+        d.z = -s.v * (float)Math.Sin(s.psi); // ZM_dot
         return d;
     }
 
