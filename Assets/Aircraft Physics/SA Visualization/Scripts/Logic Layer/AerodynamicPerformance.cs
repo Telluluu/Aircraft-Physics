@@ -7,7 +7,11 @@ public class AerodynamicPerformance : MonoBehaviour
 {
     private Rigidbody rb;
 
+    [Header("感知环")]
+    public SARing saRing;
+
     // 能量感知
+    [Header("能量感知")]
     public float lastEnergyHeight = 0;
 
     public float currentEnergyHeight = 0;
@@ -16,6 +20,7 @@ public class AerodynamicPerformance : MonoBehaviour
     private float timer = 0;
 
     // 失速预警 左右翼尖，左右、垂直尾翼失速接近率
+    [Header("失速预警")]
     public float leftWingTipStallProximity, rightWingTipStallProximity,
         leftTailStallProximity, verticalTailStallProximity, rightTailStallProximity = 0;
 
@@ -23,6 +28,7 @@ public class AerodynamicPerformance : MonoBehaviour
     public AeroSurface leftWing, rightWing, leftTail, verticalTail, rightTail;
 
     // 机动效率 持续机动效率越接近0效率越高，大于0说明攻角过大，小于0说明攻角过小
+    [Header("机动效率")]
     public float countinuousManeuverEfficiency = 0;
 
     public bool isContinuousManeuverEfficiency = false;
@@ -39,25 +45,38 @@ public class AerodynamicPerformance : MonoBehaviour
 
     private void Update()
     {
-        CalculateDeltaEnergyHeight();
-        CalculateShallProximity();
-        CheckManeuverEfficiency();
+        timer += Time.deltaTime;
+        if (timer >= calculateFrequency)
+        {
+            CalculateDeltaEnergyHeight();
+            CalculateShallProximity();
+            CheckManeuverEfficiency();
+            SARing.SpData spData = new()
+            {
+                leftWingSp = leftWingTipStallProximity,
+                leftTailWingSp = leftTailStallProximity,
+                rightTailWingSp = rightTailStallProximity,
+                rightWingSp = rightWingTipStallProximity
+            };
+
+            SARing.ManeuverEfficiencyData meData = new()
+            {
+                countinuousManeuverEfficiency = this.countinuousManeuverEfficiency,
+                isContinuousManeuverEfficiency = this.isContinuousManeuverEfficiency,
+                isMaxInstantaneousManeuverEfficiency = this.isContinuousManeuverEfficiency
+            };
+            saRing.SetSAVisualizationData(deltaEnergyHeight, spData, meData);
+            timer = 0;
+        }
     }
 
     private void CalculateDeltaEnergyHeight()
     {
-        timer += Time.deltaTime;
-        if (timer >= calculateFrequency)
-        {
-            currentEnergyHeight = rb.transform.position.y +
-                rb.linearVelocity.magnitude * rb.linearVelocity.magnitude / Physics.gravity.magnitude;
+        currentEnergyHeight = rb.transform.position.y +
+            rb.linearVelocity.magnitude * rb.linearVelocity.magnitude / Physics.gravity.magnitude;
 
-            deltaEnergyHeight = currentEnergyHeight - lastEnergyHeight;
-            lastEnergyHeight = currentEnergyHeight;
-
-            // Debug.Log(deltaEnergyHeight);
-            timer = 0;
-        }
+        deltaEnergyHeight = currentEnergyHeight - lastEnergyHeight;
+        lastEnergyHeight = currentEnergyHeight;
     }
 
     private void CalculateShallProximity()

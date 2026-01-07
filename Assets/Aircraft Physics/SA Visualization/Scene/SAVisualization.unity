@@ -2235,7 +2235,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3821912f8d960e2479cedd9ba4b4c878, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cruiseSpeed: 10
+  cruiseSpeed: 200
   turnSpeed: 2
   movementScale: 0.1
   flyRange: {x: 2000, y: 1000, z: 2000}
@@ -2264,7 +2264,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 6
   m_CollisionDetection: 0
 --- !u!1 &1075455994
 GameObject:
@@ -2756,7 +2756,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1188863487}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.06112927, y: -0.000000017702765, z: 0.0000000010841847, w: 0.99812984}
+  m_LocalRotation: {x: 0.06112927, y: -0.000000017702765, z: 0.0000000010841846, w: 0.9981299}
   m_LocalPosition: {x: 0, y: 7.18, z: -14.273}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -2775,6 +2775,7 @@ GameObject:
   - component: {fileID: 1197469000}
   - component: {fileID: 1197469002}
   - component: {fileID: 1197469001}
+  - component: {fileID: 1197469003}
   m_Layer: 5
   m_Name: Raddar Panel
   m_TagString: Untagged
@@ -2839,6 +2840,22 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1197468999}
   m_CullTransparentMesh: 1
+--- !u!114 &1197469003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1197468999}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddd2ecc86465e2d4699fff314c5d6c9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lockonFramePrefab: {fileID: 1188732809238676725, guid: def6b0b9440d89045a9f415489bcc3df,
+    type: 3}
+  maxPoolSize: 10
+  targetsTransform: []
 --- !u!1 &1205255999
 GameObject:
   m_ObjectHideFlags: 0
@@ -3984,12 +4001,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e73cf40ca2ce2f14e902649931c221d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  radarLockonUI: {fileID: 1197469003}
   maxRange: 2000
   scanAngle: 60
   targetMask:
     serializedVersion: 2
-    m_Bits: 4294967295
-  minDopplerVelocity: 50
+    m_Bits: 1
+  minDopplerVelocity: 100
   lockedTargets: []
 --- !u!1 &1722032379
 GameObject:
@@ -4369,7 +4387,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.1764706}
+  m_Color: {r: 1, g: 1, b: 1, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -4406,10 +4424,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 96123a8dd0114d04bbd92d675d730c61, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  leftWingArc: {fileID: 0}
-  tailArc: {fileID: 0}
-  rightWingArc: {fileID: 0}
-  BestTurnRateArc: {fileID: 0}
+  arcInnerRadius: 0
+  arcOuterRadius: 0.5
+  leftWingArc: {fileID: 592231684}
+  tailArc: {fileID: 1140276749}
+  rightWingArc: {fileID: 1318763987}
+  bestTurnRateArc: {fileID: 1132078364}
+  psBall: {fileID: 1148602387}
+  Ps: 0
 --- !u!1 &1897207762
 GameObject:
   m_ObjectHideFlags: 0
@@ -4997,10 +5019,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 19e761e28595b0749bcb89fb744b125b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  saRing: {fileID: 1860423312}
   lastEnergyHeight: 0
   currentEnergyHeight: 0
   deltaEnergyHeight: 0
-  calculateFrequency: 0.5
+  calculateFrequency: 0.25
   leftWingTipStallProximity: 0
   rightWingTipStallProximity: 0
   leftTailStallProximity: 0

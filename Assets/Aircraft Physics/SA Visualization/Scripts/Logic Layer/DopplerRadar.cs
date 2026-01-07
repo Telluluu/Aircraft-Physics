@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class DopplerRadar : MonoBehaviour
 {
+    [Header("可视化")]
+    public RadarLockonUI radarLockonUI;
+
     [Header("雷达设置")]
     public float maxRange = 2000f;       // 探测距离
 
@@ -24,6 +27,8 @@ public class DopplerRadar : MonoBehaviour
     private void Update()
     {
         ScanTargets();
+        if (radarLockonUI != null)
+            radarLockonUI.SetTargets(lockedTargets);
     }
 
     private void ScanTargets()

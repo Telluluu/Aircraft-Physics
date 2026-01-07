@@ -1,4 +1,4 @@
-Shader "Custom/UI_PolarRingFrame"
+Shader "Custom/PolarRingFrame"
 {
 Properties
     {

@@ -35,7 +35,7 @@ Properties
             v2f vert (appdata_full v) {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = v.texcoord.xy - 0.5; // 关键：将UV原点移到中心
+                o.uv = v.texcoord.xy - 0.5; // 将UV原点移到中心
                 o.color = v.color * _Color;
                 return o;
             }
@@ -45,7 +45,6 @@ Properties
                 float dist = length(i.uv);
                 
                 // 2. 计算极坐标角度 (0-360)
-                // atan2(y, x) 返回弧度，我们需要转为角度
                 float ang = degrees(atan2(i.uv.y, i.uv.x));
                 if (ang < 0) ang += 360.0;
 
@@ -59,7 +58,7 @@ Properties
                 if (_AngleStart < _AngleEnd) {
                     angleMask = (ang >= _AngleStart && ang <= _AngleEnd) ? 1.0 : 0.0;
                 } else {
-                    // 如果起始角大于结束角（例如 350 到 10），说明跨越了 0 点
+                    // 如果起始角大于结束角说明跨越了 0 点
                     angleMask = (ang >= _AngleStart || ang <= _AngleEnd) ? 1.0 : 0.0;
                 }
 
