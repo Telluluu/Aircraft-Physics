@@ -2,7 +2,7 @@
 - Project name: Aircraft-Physics
 - Unity version: Unity 6000.0.40f1
 - Active game object:
-  - Name: Raddar Panel
+  - Name: Wing_L_0
   - Tag: Untagged
-  - Layer: UI
+  - Layer: Default
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->
