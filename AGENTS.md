@@ -2,7 +2,7 @@
 - Project name: Aircraft-Physics
 - Unity version: Unity 6000.0.40f1
 - Active game object:
-  - Name: FollowCam
+  - Name: Raddar Panel
   - Tag: Untagged
-  - Layer: Default
+  - Layer: UI
 <!-- UNITY CODE ASSIST INSTRUCTIONS END -->
