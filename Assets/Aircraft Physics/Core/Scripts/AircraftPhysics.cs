@@ -27,6 +27,14 @@ public class AircraftPhysics : MonoBehaviour
         rb = GetComponent<Rigidbody>();
     }
 
+    private void Start()
+    {
+        // 自动设定重心以保证初始静稳定性
+        //rb.centerOfMass = CalculateIdealCenterOfMass(0.15f);
+
+        //Debug.Log($"理想重心已设定为本地坐标: {rb.centerOfMass}");
+    }
+
     private void FixedUpdate()
     {
         // 计算当前帧风吹在空气动力学表面上产生的力
@@ -122,4 +130,51 @@ public class AircraftPhysics : MonoBehaviour
     }
 
 #endif
+
+    public Vector3 CalculateIdealCenterOfMass(float staticMargin = 0.1f)
+    {
+        if (aerodynamicSurfaces == null || aerodynamicSurfaces.Count == 0)
+            return transform.position;
+
+        float totalLiftPotential = 0f;
+        Vector3 weightedACPos = Vector3.zero;
+        float totalChord = 0f;
+
+        foreach (var surface in aerodynamicSurfaces)
+        {
+            // 1. 获取配置数据
+            var config = surface.Config;
+            if (config == null) continue;
+
+            // 2. 计算修正后的升力斜率 (考虑到展弦比影响)
+            float correctedLiftSlope = config.liftSlope * config.aspectRatio /
+                (config.aspectRatio + 2 * (config.aspectRatio + 4) / (config.aspectRatio + 2));
+
+            float area = config.chord * config.span;
+
+            // 3. 权重 = 升力斜率 * 面积
+            float weight = correctedLiftSlope * area;
+
+            // 4. 气动中心 (AC) 位置。通常定义为各段弦长的 25% 处 假设 transform.position 是该表面几何中心，这里需要根据你的模型对齐方式微调坐标
+            Vector3 worldAC = surface.transform.position;
+
+            weightedACPos += worldAC * weight;
+            totalLiftPotential += weight;
+            totalChord += config.chord;
+        }
+
+        if (totalLiftPotential <= 0) return transform.position;
+
+        // 计算全机中性点 (Neutral Point)
+        Vector3 neutralPoint = weightedACPos / totalLiftPotential;
+
+        // 平均气动弦长 (MAC) 简单取平均值
+        float mac = totalChord / aerodynamicSurfaces.Count;
+
+        // 理想重心位置 = 中性点 - (静裕度 * MAC) * 机头方向 注意：这里的 transform.forward 假设你的飞机模型 Z 轴朝前
+        Vector3 idealCoMWorld = neutralPoint - transform.forward * (staticMargin * mac);
+
+        // 返回 Rigidbody 需要的本地坐标
+        return transform.InverseTransformPoint(idealCoMWorld);
+    }
 }
