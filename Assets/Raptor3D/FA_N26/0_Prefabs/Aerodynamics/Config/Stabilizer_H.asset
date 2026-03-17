@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31ad2ae223750974380ba545a828f9a1, type: 3}
   m_Name: Stabilizer_H
   m_EditorClassIdentifier: 
-  liftSlope: 6.28
+  liftSlope: 5
   skinFriction: 0.02
-  zeroLiftAoA: -3
-  stallAngleHigh: 15
-  stallAngleLow: -15
-  chord: 2.1
+  zeroLiftAoA: 0
+  stallAngleHigh: 25
+  stallAngleLow: -20
+  chord: 2.2
   flapFraction: 0.35
-  span: 3
+  span: 3.3
   autoAspectRatio: 1
-  aspectRatio: 1.4285715
+  aspectRatio: 1.5

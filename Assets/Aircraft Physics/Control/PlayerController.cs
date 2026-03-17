@@ -48,9 +48,11 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        Pitch = Input.GetAxis("Vertical");
-        Roll = Input.GetAxis("Horizontal");
-        Yaw = Input.GetAxis("Yaw");
+        //Pitch = Input.GetAxis("Vertical");
+        //Roll = Input.GetAxis("Horizontal");
+        //Yaw = Input.GetAxis("Yaw");
+
+        UpdateMouseSteering();
 
         // 节流阀
         if (Input.GetKeyDown(KeyCode.Space))
@@ -118,6 +120,28 @@ public class PlayerController : MonoBehaviour
                     break;
             }
         }
+    }
+
+    private void UpdateMouseSteering()
+    {
+        // 按住 Alt 时自由观察，不控制飞机转向
+        if (Input.GetKey(KeyCode.LeftAlt)) return;
+
+        // 1. 获取鼠标在屏幕空间对应的世界射线方向 这比直接取 Camera.forward 更精准，因为它包含了鼠标在屏幕上的偏移
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        Vector3 mouseWorldDirection = ray.direction;
+
+        // 2. 将鼠标指向的世界方向转换为飞机的本地坐标系
+        Vector3 localTargetDir = transform.InverseTransformDirection(mouseWorldDirection);
+
+        // 3. 映射到飞行控制量 (范围限制在 -1 到 1) 俯仰 (Pitch)：目标在上方(y > 0)则抬头。如果发现反向，请给 localTargetDir.y 加负号
+        Pitch = Mathf.Clamp(localTargetDir.y * -2.0f, -45f, 45f);
+
+        // 偏航 (Yaw)：目标在右侧(x > 0)则右转
+        Yaw = Mathf.Clamp(localTargetDir.x * -2.0f, -45f, 45f);
+
+        // 翻滚 (Roll)：为了手感，向左转时向左倾斜
+        Roll = Mathf.Clamp(-localTargetDir.x * -2.0f, -45f, 45f);
     }
 
     private void OnDrawGizmos()

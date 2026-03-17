@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 31ad2ae223750974380ba545a828f9a1, type: 3}
   m_Name: Wing0
   m_EditorClassIdentifier: 
-  liftSlope: 6.28
-  skinFriction: 0.02
-  zeroLiftAoA: -3
-  stallAngleHigh: 15
+  liftSlope: 3.5
+  skinFriction: 0.005
+  zeroLiftAoA: -0.5
+  stallAngleHigh: 22
   stallAngleLow: -15
   chord: 5
-  flapFraction: 0.2
-  span: 2
+  flapFraction: 0.3
+  span: 2.5
   autoAspectRatio: 0
   aspectRatio: 3
