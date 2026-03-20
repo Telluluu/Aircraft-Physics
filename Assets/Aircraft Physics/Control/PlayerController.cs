@@ -48,11 +48,11 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        //Pitch = Input.GetAxis("Vertical");
-        //Roll = Input.GetAxis("Horizontal");
-        //Yaw = Input.GetAxis("Yaw");
+        Pitch = Input.GetAxis("Vertical");
+        Roll = Input.GetAxis("Horizontal");
+        Yaw = Input.GetAxis("Yaw");
 
-        UpdateMouseSteering();
+        //UpdateMouseSteering();
 
         // 节流阀
         if (Input.GetKeyDown(KeyCode.Space))

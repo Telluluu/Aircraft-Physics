@@ -64,7 +64,7 @@ public class EnvelopeDrawer : MonoBehaviour
         latestData = newData;
     }
 
-    private void Update()
+    private void LateUpdate()
     {
         if (!initialized || latestData == null) return;
 

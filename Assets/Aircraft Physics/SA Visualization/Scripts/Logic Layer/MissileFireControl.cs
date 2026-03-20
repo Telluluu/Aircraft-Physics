@@ -103,6 +103,7 @@ public class MissileFireControl : MonoBehaviour
         m_UpdateTimer += Time.deltaTime;
         if (m_UpdateTimer >= 1.0f)
         {
+            // 当包线结果诡异时，检查目标是否为载机自己!!!
             if (targetTransform != null)
             {
                 TriggerEnvelopeCalculation(myMissile, targetTransform, m_Solver);
@@ -155,6 +156,21 @@ public class MissileFireControl : MonoBehaviour
 
         // 4. 计算初始进入角 (Aspect Angle) 论文定义的 tPsi 是目标航向相对于视线的偏角 如果目标正对你飞来，targetHeading 和 losAngle 相差 180度
         float initialAspectRad = worldTargetHeading - worldLOSAngle;
+
+        //// 1. 获取目标相对于载机的本地坐标
+        //Vector3 localTargetPos = transform.InverseTransformPoint(targetTransform.position);
+        //localTargetPos.y = 0; // 投影到水平面
+
+        //// 2. 计算目标在载机本地空间的角度 (以正前方 Z 为 0度) Unity 中 Atan2(x, z) 对应以 Z 为轴偏移的角度
+        //float localTargetAngleRad = Mathf.Atan2(localTargetPos.x, localTargetPos.z);
+
+        //// 3. 计算进入角时，也要考虑目标的相对速度在载机本地空间的方向
+        //Vector3 worldTargetVel = targetTransform.GetComponent<Rigidbody>()?.linearVelocity ?? Vector3.zero;
+        //// 将世界速度转为本地速度方向
+        //Vector3 localTargetVel = transform.InverseTransformDirection(worldTargetVel);
+        //float localTargetHeadingRad = Mathf.Atan2(localTargetVel.x, localTargetVel.z);
+
+        //float initialAspectRad = localTargetHeadingRad - localTargetAngleRad;
 
         EnvelopeSolver.TargetParams tParams = new EnvelopeSolver.TargetParams
         {
