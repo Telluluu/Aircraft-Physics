@@ -5,19 +5,19 @@ using UnityEngine.UI;
 public class AirplaneController : MonoBehaviour
 {
     [SerializeField]
-    private List<AeroSurface> controlSurfaces = null;
+    protected List<AeroSurface> controlSurfaces = null;
 
     [SerializeField]
-    private List<WheelCollider> wheels = null;
+    protected List<WheelCollider> wheels = null;
 
     [SerializeField]
-    private float rollControlSensitivity = 0.2f;
+    protected float rollControlSensitivity = 0.2f;
 
     [SerializeField]
-    private float pitchControlSensitivity = 0.2f;
+    protected float pitchControlSensitivity = 0.2f;
 
     [SerializeField]
-    private float yawControlSensitivity = 0.2f;
+    protected float yawControlSensitivity = 0.2f;
 
     [Range(-1, 1)]
     public float Pitch;
@@ -32,21 +32,21 @@ public class AirplaneController : MonoBehaviour
     public float Flap;
 
     [SerializeField]
-    private Text displayText = null;
+    protected Text displayText = null;
 
-    private float thrustPercent;
-    private float brakesTorque;
+    protected float thrustPercent;
+    protected float brakesTorque;
 
-    private AircraftPhysics aircraftPhysics;
-    private Rigidbody rb;
+    protected AircraftPhysics aircraftPhysics;
+    protected Rigidbody rb;
 
-    private void Start()
+    protected virtual void Start()
     {
         aircraftPhysics = GetComponent<AircraftPhysics>();
         rb = GetComponent<Rigidbody>();
     }
 
-    private void Update()
+    protected virtual void Update()
     {
         Pitch = Input.GetAxis("Vertical");
         Roll = Input.GetAxis("Horizontal");
@@ -76,7 +76,7 @@ public class AirplaneController : MonoBehaviour
         displayText.text += brakesTorque > 0 ? "B: ON" : "B: OFF";
     }
 
-    private void FixedUpdate()
+    protected virtual void FixedUpdate()
     {
         SetControlSurfecesAngles(Pitch, Roll, Yaw, Flap);
         aircraftPhysics.SetThrustPercent(thrustPercent);
