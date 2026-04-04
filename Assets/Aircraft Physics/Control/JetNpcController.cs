@@ -13,135 +13,129 @@ public class JetNpcController : AirplaneController
     [Header("测试用变量")]
     public bool isCombatMode = false;
 
-    private Vector3 debugEscapeHeading; // 锁定的测试目标方向
-    private bool isTestingTurn = false;
+    private Coroutine activeManeuver; // 用于记录当前运行的机动任务
 
     protected override void Update()
     {
-        // 1. 基础推力：测试时保持动力
+        // 基础动力维持
         base.thrustPercent = 1.0f;
 
-        // 修正后的触发逻辑
         if (Input.GetKeyDown(KeyCode.C))
         {
-            isTestingTurn = true;
+            // 1. 计算目标航向：当前机头水平面上的正后方
+            Vector3 targetHeading = -transform.forward;
+            targetHeading.y = 0; // 锁定在水平面上
+            targetHeading.Normalize();
 
-            // 锁定当前时刻的“正后方”为世界坐标方向 假设你现在的航向是北(0,0,1)，那目标就是南(0,0,-1) 必须保存这个向量，后续帧不再改变它
-            debugEscapeHeading = -transform.forward;
-
-            // 强制水平，防止因为俯仰角导致的垂直分量干扰
-            debugEscapeHeading.y = 0;
-            debugEscapeHeading.Normalize();
-
-            Debug.Log("开始 180 度掉头测试。当前航向：" + transform.forward + " -> 目标航向：" + debugEscapeHeading);
-        }
-
-        // 3. 执行逻辑
-        if (isTestingTurn)
-        {
-            // 实时画出目标航向（绿色长线），方便观察飞机是否往这个方向靠拢
-            Debug.DrawRay(transform.position, debugEscapeHeading * 10000f, Color.green);
-
-            // 调用你的通用指向器
-            ApplyFlightDirector(debugEscapeHeading);
-
-            // 4. 判定完成：当机头对准目标航向（点积接近 1）时停止测试
-            float dot = Vector3.Dot(transform.forward, debugEscapeHeading);
-            if (dot > 0.99f)
+            // 2. 状态清理：如果已有任务在运行，先停止，防止舵面控制权冲突
+            if (activeManeuver != null)
             {
-                Debug.Log("测试完成：已对准目标航向");
-                isTestingTurn = false;
-                // 重置输入，防止过冲
-                base.Roll = 0;
-                base.Pitch = 0;
-                base.Yaw = 0;
+                StopCoroutine(activeManeuver);
+                ResetInputs(); // 重置杆量防止残留
             }
+
+            // 3. 启动转冷动作
+            activeManeuver = StartCoroutine(Maneuver_TurnCold(targetHeading));
+
+            Debug.Log($"[Test] 触发转冷机动。目标航向: {targetHeading}");
         }
     }
 
-    private float lockedSide = 0f;
-
-    public void ApplyFlightDirector(Vector3 worldTargetDir)
+    public IEnumerator Maneuver_TurnCold(Vector3 finalHeading)
     {
-        Vector3 localDir = transform.InverseTransformDirection(worldTargetDir.normalized);
-        if (localDir.z < 0 && Mathf.Abs(localDir.x) < 0.001f)
+        Debug.Log("Maneuver: 开始转冷 (Level 180 Turn)");
+
+        // 阶段 1：建立坡度。目标是侧身 90 度（High-G Turn 的准备姿态） 判定条件：当前坡度与目标坡度误差小于 10 度即进入下一阶段
+        while (Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), 90f)) > 10f)
         {
-            localDir.x = 0.001f;
-        }
-
-        float angleXZ = Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
-        if (angleXZ > 15 && angleXZ < 180f)
-        {
-            // 目标在右侧(15~180度)
-        }
-        else if (angleXZ < -15 && angleXZ > -180f)
-        {
-            // 目标在左侧（-15~-180度）
-        }
-        else
-        {
-            // 目标在前方，偏航调整
-        }
-    }
-
-    public void StartTurnCold(Transform threat)
-    {
-        if (threat == null) return;
-        StopAllCoroutines(); // 防止多个指令冲突
-        StartCoroutine(TurnColdRoutine(threat.position));
-    }
-
-    private IEnumerator TurnColdRoutine(Vector3 threatPos)
-    {
-        // 1. 初始化：锁定脱离航向
-        Vector3 escapeHeading = (transform.position - threatPos);
-        escapeHeading.y = 0;
-        escapeHeading.Normalize();
-
-        // 配置基础动力
-        base.thrustPercent = 1.0f;
-        base.Flap = 0f;
-
-        // 2. 第一阶段：快速横滚 (直到坡度接近 90 度或目标投影) 此时不拉杆，只翻滚，减少能量损失并对准转向矢量
-        while (true)
-        {
-            Vector3 localDir = transform.InverseTransformDirection(escapeHeading);
-            float rollError = Mathf.Atan2(localDir.x, localDir.y) * Mathf.Rad2Deg;
-
-            base.Roll = Mathf.Clamp(rollError * 0.1f, -1f, 1f);
-            base.Pitch = 0.1f; // 维持微小仰角
-
-            // 当翻滚误差小于 20 度时，进入下一阶段
-            if (Mathf.Abs(rollError) < 20f) break;
+            ApplyRollTask(90f);
+            base.Pitch = 0.1f; // 维持极小拉杆，抵消机头下沉
             yield return null;
         }
 
-        // 3. 第二阶段：大过载拉杆 (转弯) 此时保持横滚修正，同时全速拉杆
-        while (Vector3.Dot(transform.forward, escapeHeading) < 0.98f)
+        // 阶段 2：满偏拉杆转向。 我们利用侧倾后的升力分量来实现最快的水平掉头。 判定条件：机头与目标航向的点积 > 0.99 (约 8 度以内)
+        while (Vector3.Dot(transform.forward, finalHeading.normalized) < 0.99f)
         {
-            Vector3 localDir = transform.InverseTransformDirection(escapeHeading);
-            float rollError = Mathf.Atan2(localDir.x, localDir.y) * Mathf.Rad2Deg;
+            // 持续调用原子函数，物理层会自动处理 90 度的微调和阻尼
+            ApplyRollTask(90f);
 
-            base.Roll = Mathf.Clamp(rollError * 0.1f, -1f, 1f);
-
-            // 目标在后方或离轴角大时，全力拉杆
+            // 转向阶段不再使用 PD 追踪，而是直接满偏拉杆以获得最大转弯率
             base.Pitch = 1.0f;
 
+            base.Yaw = 0;
             yield return null;
         }
 
-        // 4. 第三阶段：改平回正 机头已对准，撤销拉杆，收回横滚
-        float stabilizeTime = 1.0f;
-        while (stabilizeTime > 0)
+        // 阶段 3：恢复平飞姿态。 判定条件：坡度回到 5 度以内
+        while (Mathf.Abs(GetCurrentRoll()) > 5f)
         {
-            ApplyFlightDirector(escapeHeading); // 使用你的通用指向器做最后微调
-            stabilizeTime -= Time.deltaTime;
+            ApplyRollTask(0f); // 目标回正到 0 度
+
+            // 使用俯仰任务函数精调高度，指向最终航向
+            ApplyPitchTask(finalHeading);
             yield return null;
         }
 
-        // 动作完成，清理控制输入
-        base.Roll = 0;
-        base.Pitch = 0;
+        ResetInputs(); // 清除杆量，动作结束
+        Debug.Log("Maneuver: 转冷完成");
+    }
+
+    public void ResetInputs()
+    {
+        base.Pitch = 0f;
+        base.Roll = 0f;
+        base.Yaw = 0f;
+    }
+
+    // 滚转轴：稳定坡度
+    public void ApplyRollTask(float targetBank)
+    {
+        float current = GetCurrentRoll();
+        float error = Mathf.DeltaAngle(current, targetBank);
+
+        // 获取本地 Z 轴角速度 (deg/s)
+        float rollVel = transform.InverseTransformDirection(rb.angularVelocity).z * Mathf.Rad2Deg;
+
+        float damping = 0.5f;      // 预测时间常数，越大刹车越早
+        float sensitivity = 60f;   // 满偏阈值，越大动作越柔和
+
+        float input = (error - rollVel * damping) / sensitivity;
+
+        // 使用 MoveTowards 模拟舵机偏转速率，彻底过滤物理抖动
+        base.Roll = Mathf.MoveTowards(base.Roll, Mathf.Clamp(input, -1f, 1f), Time.deltaTime * 10f);
+    }
+
+    // 俯仰轴：追踪目标点高度
+    public void ApplyPitchTask(Vector3 worldTargetDir)
+    {
+        Vector3 localDir = transform.InverseTransformDirection(worldTargetDir.normalized);
+        // 计算目标相对于机头的仰角误差
+        float pitchError = Mathf.Atan2(localDir.y, localDir.z) * Mathf.Rad2Deg;
+
+        // 获取本地 X 轴角速度 (deg/s)
+        float pitchVel = transform.InverseTransformDirection(rb.angularVelocity).x * Mathf.Rad2Deg;
+
+        float damping = 0.25f;     // 俯仰惯性大，阻尼略调高
+        float sensitivity = 30f;
+
+        float input = (pitchError - pitchVel * damping) / sensitivity;
+        base.Pitch = Mathf.MoveTowards(base.Pitch, Mathf.Clamp(input, -1f, 1f), Time.deltaTime * 8f);
+    }
+
+    // 偏航轴：对准 XZ 平面投影
+    public void ApplyYawTask(Vector3 worldTargetDir)
+    {
+        Vector3 localDir = transform.InverseTransformDirection(worldTargetDir.normalized);
+        float yawError = Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
+
+        // 获取本地 Y 轴角速度 (deg/s)
+        float yawVel = transform.InverseTransformDirection(rb.angularVelocity).y * Mathf.Rad2Deg;
+
+        float damping = 0.2f;
+        float sensitivity = 25f;
+
+        float input = (yawError - yawVel * damping) / sensitivity;
+        base.Yaw = Mathf.MoveTowards(base.Yaw, Mathf.Clamp(input, -1f, 1f), Time.deltaTime * 10f);
     }
 
     public float GetCurrentRoll()
