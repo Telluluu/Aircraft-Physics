@@ -21,24 +21,26 @@ public class JetNpcController : AirplaneController
         // 1. 基础推力：测试时保持动力
         base.thrustPercent = 1.0f;
 
-        // 2. 触发测试：按下 C 键时“锁定”逃逸方向
+        // 修正后的触发逻辑
         if (Input.GetKeyDown(KeyCode.C))
         {
             isTestingTurn = true;
 
-            // 计算背对 target 的水平方向
-            Vector3 dirAway = (transform.position - transform.forward * 10000f);
-            dirAway.y = 0;
-            debugEscapeHeading = dirAway.normalized;
+            // 锁定当前时刻的“正后方”为世界坐标方向 假设你现在的航向是北(0,0,1)，那目标就是南(0,0,-1) 必须保存这个向量，后续帧不再改变它
+            debugEscapeHeading = -transform.forward;
 
-            Debug.Log("开始转冷测试，目标航向: " + debugEscapeHeading);
+            // 强制水平，防止因为俯仰角导致的垂直分量干扰
+            debugEscapeHeading.y = 0;
+            debugEscapeHeading.Normalize();
+
+            Debug.Log("开始 180 度掉头测试。当前航向：" + transform.forward + " -> 目标航向：" + debugEscapeHeading);
         }
 
         // 3. 执行逻辑
         if (isTestingTurn)
         {
             // 实时画出目标航向（绿色长线），方便观察飞机是否往这个方向靠拢
-            Debug.DrawRay(transform.position, debugEscapeHeading * 100f, Color.green);
+            Debug.DrawRay(transform.position, debugEscapeHeading * 10000f, Color.green);
 
             // 调用你的通用指向器
             ApplyFlightDirector(debugEscapeHeading);
@@ -57,51 +59,29 @@ public class JetNpcController : AirplaneController
         }
     }
 
+    private float lockedSide = 0f;
+
     public void ApplyFlightDirector(Vector3 worldTargetDir)
     {
         Vector3 localDir = transform.InverseTransformDirection(worldTargetDir.normalized);
-
-        // 1. 计算离轴角（目标与机头正前方的夹角） 0度表示正前方，180度表示正后方
-        float angleToTarget = Vector3.Angle(Vector3.forward, localDir);
-
-        float targetRoll = 0f;
-        float targetPitch = 0f;
-
-        // 2. 情况 A：目标在前方窄圆锥内（例如 5 度以内） 此时不需要大幅度翻滚，直接微调俯仰和偏航即可
-        if (angleToTarget < 5f)
+        if (localDir.z < 0 && Mathf.Abs(localDir.x) < 0.001f)
         {
-            targetRoll = 0f;
-            targetPitch = localDir.y * 0.5f; // 简单的比例引导
-            base.Yaw = localDir.x * 0.5f;
+            localDir.x = 0.001f;
         }
-        // 3. 情况 B：目标在后方（转冷逻辑的核心）
-        else if (localDir.z < 0)
+
+        float angleXZ = Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
+        if (angleXZ > 15 && angleXZ < 180f)
         {
-            // 计算目标在机身左右哪一侧
-            float side = Mathf.Sign(localDir.x);
-            if (localDir.x == 0) side = 1f; // 默认向右转
-
-            // 强制目标翻滚角为 90 度（侧身转向） 这样可以避免 Atan2 在 180 度附近的跳变
-            targetRoll = 90f * side;
-
-            // 判定：只有当飞机坡度接近 90 度时，才全力拉杆 transform.right.y 接近 0 意味着翅膀垂直于地面（坡度90度） 或者简单判断 rollError
-            float currentRollError = targetRoll - GetCurrentRoll(); // 需要你自己实现 GetCurrentRoll
-            if (Mathf.Abs(currentRollError) < 20f)
-            {
-                targetPitch = 1.0f; // 大过载转弯
-            }
+            // 目标在右侧(15~180度)
         }
-        // 4. 情况 C：目标在侧方（通用指向）
+        else if (angleXZ < -15 && angleXZ > -180f)
+        {
+            // 目标在左侧（-15~-180度）
+        }
         else
         {
-            targetRoll = Mathf.Atan2(localDir.x, localDir.y) * Mathf.Rad2Deg;
-            float rollWeight = Mathf.Clamp01(1.0f - (Mathf.Abs(targetRoll) / 90f));
-            targetPitch = Mathf.Atan2(localDir.y, localDir.z) * Mathf.Rad2Deg * 0.05f * rollWeight;
+            // 目标在前方，偏航调整
         }
-
-        // 5. 应用控制量 使用简单的比例控制（P控制器），加上对 Roll 的特殊处理
-        base.Roll = Mathf.Clamp(targetRoll / 180f, -1f, 1f);
-        base.Pitch = Mathf.Clamp(targetPitch, -1f, 1f);
     }
 
     public void StartTurnCold(Transform threat)
