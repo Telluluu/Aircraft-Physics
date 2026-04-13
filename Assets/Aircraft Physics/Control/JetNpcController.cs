@@ -45,39 +45,142 @@ public class JetNpcController : AirplaneController
     {
         Debug.Log("Maneuver: 开始转冷 (Level 180 Turn)");
 
-        // 阶段 1：建立坡度。目标是侧身 90 度（High-G Turn 的准备姿态） 判定条件：当前坡度与目标坡度误差小于 10 度即进入下一阶段
-        while (Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), 90f)) > 10f)
+        float requiredStableDuration = 0.5f; // 姿态需要持续稳定的时间（秒），可根据手感微调
+        float stableTime = 0f;
+
+        // 阶段 1：建立坡度并等待彻底稳定。
+        while (stableTime < requiredStableDuration)
         {
+            float rollError = Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), 90f));
+            Debug.Log("rollError = " + rollError);
+            Debug.Log("CurrentError = " + GetCurrentRoll());
+            Debug.Log("stableTime = " + stableTime);
+            // 误差小于5度开始计时，一旦偏离重置计时
+            if (rollError < 15)
+            {
+                stableTime += Time.fixedDeltaTime;
+            }
+            else
+            {
+                stableTime = 0f;
+            }
+
             ApplyRollTask(90f);
-            base.Pitch = 0.1f; // 维持极小拉杆，抵消机头下沉
-            yield return null;
+            base.Pitch = 0.1f;
+            base.Yaw = 0f;
+            yield return new WaitForFixedUpdate();
         }
 
-        // 阶段 2：满偏拉杆转向。 我们利用侧倾后的升力分量来实现最快的水平掉头。 判定条件：机头与目标航向的点积 > 0.99 (约 8 度以内)
-        while (Vector3.Dot(transform.forward, finalHeading.normalized) < 0.99f)
+        // 阶段 2：满偏拉杆转向。
+        while (Vector3.Dot(transform.forward, finalHeading.normalized) < 0.9f)
         {
-            // 持续调用原子函数，物理层会自动处理 90 度的微调和阻尼
             ApplyRollTask(90f);
-
-            // 转向阶段不再使用 PD 追踪，而是直接满偏拉杆以获得最大转弯率
             base.Pitch = 1.0f;
-
-            base.Yaw = 0;
-            yield return null;
+            base.Yaw = 0f;
+            yield return new WaitForFixedUpdate();
         }
 
-        // 阶段 3：恢复平飞姿态。 判定条件：坡度回到 5 度以内
-        while (Mathf.Abs(GetCurrentRoll()) > 5f)
+        // 阶段 3：恢复平飞姿态并等待彻底稳定。
+        stableTime = 0f; // 重置计时器
+        while (stableTime < requiredStableDuration)
         {
-            ApplyRollTask(0f); // 目标回正到 0 度
+            float rollError = Mathf.Abs(GetCurrentRoll());
 
-            // 使用俯仰任务函数精调高度，指向最终航向
+            // 误差小于5度开始计时
+            if (rollError < 15f)
+            {
+                stableTime += Time.fixedDeltaTime;
+            }
+            else
+            {
+                stableTime = 0f;
+            }
+
+            ApplyRollTask(0f);
             ApplyPitchTask(finalHeading);
-            yield return null;
+            base.Yaw = 0f;
+            yield return new WaitForFixedUpdate();
         }
 
-        ResetInputs(); // 清除杆量，动作结束
+        ResetInputs();
         Debug.Log("Maneuver: 转冷完成");
+    }
+
+    // 滚转轴：稳定坡度
+    public void ApplyRollTask(float targetBank)
+    {
+        float current = GetCurrentRoll();
+        float error = Mathf.DeltaAngle(current, targetBank);
+        float rollVel = transform.InverseTransformDirection(rb.angularVelocity).z * Mathf.Rad2Deg;
+
+        // 1. 误差归一化（将阈值调小，让曲线在 90 度以内更有斜率）
+        float errorThreshold = 90f;
+        float normalizedError = Mathf.Clamp(error / errorThreshold, -1f, 1f);
+
+        // 使用 3 次方，保证小角度极其平缓
+        float powerInput = Mathf.Pow(normalizedError, 3f);
+
+        // 2. 阻尼归一化 假设飞机最大翻滚速度为 180 deg/s，将其映射到 0-1 范围
+        float maxExpectedVelocity = 180f;
+        float normalizedVel = Mathf.Clamp(rollVel / maxExpectedVelocity, -1f, 1f);
+
+        // 阻尼系数不应超过 1.0，通常 0.2-0.5 足够防止震荡
+        float dampingCoefficient = 0.4f;
+        float dampingForce = normalizedVel * dampingCoefficient;
+
+        // 3. 合成输入
+        float finalInput = powerInput - dampingForce;
+
+        // 4. 限制导数（保持物理平滑）
+        base.Roll = Mathf.MoveTowards(base.Roll, Mathf.Clamp(finalInput, -1f, 1f), Time.fixedDeltaTime * 2.0f);
+
+        // 5. 强制死区
+        if (Mathf.Abs(error) < 1.0f && Mathf.Abs(rollVel) < 1.0f)
+        {
+            base.Roll = 0f;
+        }
+    }
+
+    // 俯仰轴：追踪目标点高度
+    public void ApplyPitchTask(Vector3 worldTargetDir)
+    {
+        Vector3 localDir = transform.InverseTransformDirection(worldTargetDir.normalized);
+        float pitchError = Mathf.Atan2(localDir.y, localDir.z) * Mathf.Rad2Deg;
+
+        if (Mathf.Abs(pitchError) < 1.5f)
+        {
+            base.Pitch = 0f;
+            return;
+        }
+
+        float pitchVel = transform.InverseTransformDirection(rb.angularVelocity).x * Mathf.Rad2Deg;
+
+        float damping = 0.4f;      // 调高阻尼
+        float sensitivity = 30f;
+
+        float input = (pitchError - pitchVel * damping) / sensitivity;
+        base.Pitch = Mathf.Clamp(input, -1f, 1f);
+    }
+
+    // 偏航轴：对准 XZ 平面投影
+    public void ApplyYawTask(Vector3 worldTargetDir)
+    {
+        Vector3 localDir = transform.InverseTransformDirection(worldTargetDir.normalized);
+        float yawError = Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
+
+        if (Mathf.Abs(yawError) < 1.5f)
+        {
+            base.Yaw = 0f;
+            return;
+        }
+
+        float yawVel = transform.InverseTransformDirection(rb.angularVelocity).y * Mathf.Rad2Deg;
+
+        float damping = 0.3f;
+        float sensitivity = 25f;
+
+        float input = (yawError - yawVel * damping) / sensitivity;
+        base.Yaw = Mathf.Clamp(input, -1f, 1f);
     }
 
     public void ResetInputs()
@@ -87,57 +190,6 @@ public class JetNpcController : AirplaneController
         base.Yaw = 0f;
     }
 
-    // 滚转轴：稳定坡度
-    public void ApplyRollTask(float targetBank)
-    {
-        float current = GetCurrentRoll();
-        float error = Mathf.DeltaAngle(current, targetBank);
-
-        // 获取本地 Z 轴角速度 (deg/s)
-        float rollVel = transform.InverseTransformDirection(rb.angularVelocity).z * Mathf.Rad2Deg;
-
-        float damping = 0.5f;      // 预测时间常数，越大刹车越早
-        float sensitivity = 60f;   // 满偏阈值，越大动作越柔和
-
-        float input = (error - rollVel * damping) / sensitivity;
-
-        // 使用 MoveTowards 模拟舵机偏转速率，彻底过滤物理抖动
-        base.Roll = Mathf.MoveTowards(base.Roll, Mathf.Clamp(input, -1f, 1f), Time.deltaTime * 10f);
-    }
-
-    // 俯仰轴：追踪目标点高度
-    public void ApplyPitchTask(Vector3 worldTargetDir)
-    {
-        Vector3 localDir = transform.InverseTransformDirection(worldTargetDir.normalized);
-        // 计算目标相对于机头的仰角误差
-        float pitchError = Mathf.Atan2(localDir.y, localDir.z) * Mathf.Rad2Deg;
-
-        // 获取本地 X 轴角速度 (deg/s)
-        float pitchVel = transform.InverseTransformDirection(rb.angularVelocity).x * Mathf.Rad2Deg;
-
-        float damping = 0.25f;     // 俯仰惯性大，阻尼略调高
-        float sensitivity = 30f;
-
-        float input = (pitchError - pitchVel * damping) / sensitivity;
-        base.Pitch = Mathf.MoveTowards(base.Pitch, Mathf.Clamp(input, -1f, 1f), Time.deltaTime * 8f);
-    }
-
-    // 偏航轴：对准 XZ 平面投影
-    public void ApplyYawTask(Vector3 worldTargetDir)
-    {
-        Vector3 localDir = transform.InverseTransformDirection(worldTargetDir.normalized);
-        float yawError = Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
-
-        // 获取本地 Y 轴角速度 (deg/s)
-        float yawVel = transform.InverseTransformDirection(rb.angularVelocity).y * Mathf.Rad2Deg;
-
-        float damping = 0.2f;
-        float sensitivity = 25f;
-
-        float input = (yawError - yawVel * damping) / sensitivity;
-        base.Yaw = Mathf.MoveTowards(base.Yaw, Mathf.Clamp(input, -1f, 1f), Time.deltaTime * 10f);
-    }
-
     public float GetCurrentRoll()
     {
         // 1. 获取机身的本地右向量和上向量
@@ -145,9 +197,9 @@ public class JetNpcController : AirplaneController
         Vector3 localUp = transform.up;
 
         // 2. 将世界向上向量投影到飞机的横截面（由 localRight 和 localUp 定义的平面） 计算 transform.up 与 Vector3.up 之间的带符号夹角，围绕机头方向（transform.forward）旋转
-        float roll = Vector3.SignedAngle(Vector3.up, localUp, transform.forward);
+        float roll = Vector3.SignedAngle(localUp, Vector3.up, transform.forward);
 
-        // 返回值范围：0 平飞，正值向右翻滚，负值向左翻滚（或根据你的习惯取反）
+        // 返回值范围：0 平飞，正值向右翻滚，负值向左翻滚
         return roll;
     }
 }
