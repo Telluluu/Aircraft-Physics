@@ -19,7 +19,7 @@ public class JetNpcController : AirplaneController
     {
         // 基础动力维持
         base.thrustPercent = 1.0f;
-
+        //Debug.Log("AirSpeed = " + base.rb.linearVelocity.magnitude);
         if (Input.GetKeyDown(KeyCode.C))
         {
             // 1. 计算目标航向：当前机头水平面上的正后方
@@ -45,18 +45,21 @@ public class JetNpcController : AirplaneController
     {
         Debug.Log("Maneuver: 开始转冷 (Level 180 Turn)");
 
-        float requiredStableDuration = 0.5f; // 姿态需要持续稳定的时间（秒），可根据手感微调
+        float requiredStableDuration = 0.5f;
         float stableTime = 0f;
 
-        // 阶段 1：建立坡度并等待彻底稳定。
+        // 记录机动开始时的目标高度，转弯全程尽力维持此高度
+        float targetAltitude = transform.position.y;
+
+        // 提取水平面上的目标方向
+        Vector3 planarTarget = Vector3.ProjectOnPlane(finalHeading, Vector3.up).normalized;
+
+        // 阶段 1：建立坡度
         while (stableTime < requiredStableDuration)
         {
-            float rollError = Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), 50f));
-            Debug.Log("rollError = " + rollError);
-            Debug.Log("CurrentError = " + GetCurrentRoll());
-            Debug.Log("stableTime = " + stableTime);
-            // 误差小于5度开始计时，一旦偏离重置计时
-            if (rollError < 2)
+            float rollError = Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), 60f));
+
+            if (rollError < 5f)
             {
                 stableTime += Time.fixedDeltaTime;
             }
@@ -65,60 +68,40 @@ public class JetNpcController : AirplaneController
                 stableTime = 0f;
             }
 
-            ApplyRollTask(50f);
-            base.Pitch = 0.1f;
+            ApplyRollTask(60f);
+            MaintainTurnAltitude(targetAltitude);
             base.Yaw = 0f;
             yield return new WaitForFixedUpdate();
         }
-        Debug.Log("Step2");
-        // 阶段 2：能量优先的转向控制
-        while (Vector3.Dot(transform.forward, finalHeading.normalized) < 0.98f)
+
+        Debug.Log("Step 2");
+        // 阶段 2：维持高度并等待机头在水平面上对准目标
+        Vector3 planarForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+
+        while (Vector3.Dot(planarForward, planarTarget) < 0.98f)
         {
-            float currentAirspeed = base.rb.linearVelocity.magnitude;
+            planarForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
 
-            // --- 核心改动 1：动态坡度限制 --- 如果速度不足以维持 50 度转弯，自动放平翅膀恢复升力
-            float safeRoll = (currentAirspeed < 120f) ? 30f : 50f;
-            ApplyRollTask(safeRoll);
+            // 固定维持第一阶段建立的坡度，不再动态调整
+            ApplyRollTask(60f);
 
-            float pitchVel = transform.InverseTransformDirection(base.rb.angularVelocity).x * Mathf.Rad2Deg;
-            Vector3 localDir = transform.InverseTransformDirection(finalHeading.normalized);
-            float pitchError = Mathf.Atan2(localDir.y, localDir.z) * Mathf.Rad2Deg;
+            // 仅通过高度偏差来控制俯仰
+            MaintainTurnAltitude(targetAltitude);
 
-            // --- 核心改动 2：垂直速率感知 ---
-            float verticalVel = base.rb.linearVelocity.y;
-            float climbComp = 0f;
-            if (verticalVel < -2f) // 只要每秒下降超过 2 米
-            {
-                climbComp = Mathf.Abs(verticalVel) * 0.2f;
-            }
+            // 加入偏航控制辅助水平转向
+            //ApplyYawTask(finalHeading);
 
-            // --- 核心改动 3：更稳健的 Pitch 合成 ---
-            float basePull = 0.25f;
-            float trackingPull = Mathf.Clamp(pitchError / 20f, 0f, 0.5f); // 限制追踪项权重
-            float gravityComp = Mathf.Clamp01(Mathf.Abs(Mathf.Min(0, transform.forward.y)) * 1.2f);
-
-            float rawPitch = basePull + trackingPull + gravityComp + climbComp;
-
-            // --- 核心改动 4：平滑的失速保护 --- 确保速度掉下来时，拉杆量平滑衰减，不要让机头剧烈“点头”
-            float speedWeight = Mathf.SmoothStep(0f, 1f, (currentAirspeed - 60f) / 60f);
-
-            float targetPitch = Mathf.Clamp(rawPitch * speedWeight, 0f, 1.0f);
-
-            // 降低 MoveTowards 速率，防止舵面震荡引发物理引擎发疯
-            base.Pitch = Mathf.MoveTowards(base.Pitch, targetPitch, Time.fixedDeltaTime * 3.0f);
-
-            base.Yaw = 0f;
             yield return new WaitForFixedUpdate();
         }
+
         Debug.Log("Step 3");
-        // 阶段 3：恢复平飞姿态并等待彻底稳定。
-        stableTime = 0f; // 重置计时器
+        // 阶段 3：恢复平飞并等待彻底稳定
+        stableTime = 0f;
         while (stableTime < requiredStableDuration)
         {
             float rollError = Mathf.Abs(GetCurrentRoll());
 
-            // 误差小于5度开始计时
-            if (rollError < 15f)
+            if (rollError < 5f)
             {
                 stableTime += Time.fixedDeltaTime;
             }
@@ -137,35 +120,29 @@ public class JetNpcController : AirplaneController
         Debug.Log("Maneuver: 转冷完成");
     }
 
-    //滚转轴：稳定坡度
-    //public void ApplyRollTask(float targetBank)
-    //{
-    //    float current = GetCurrentRoll();
-    //    float error = Mathf.DeltaAngle(current, targetBank);
-    //    float rollVel = transform.InverseTransformDirection(rb.angularVelocity).z * Mathf.Rad2Deg;
+    // 专属辅助方法：在盘旋时维持高度
+    private void MaintainTurnAltitude(float targetAlt)
+    {
+        float altError = targetAlt - transform.position.y;
+        float verticalVel = base.rb.linearVelocity.y;
 
-    // // 1. 误差归一化（将阈值调小，让曲线在 90 度以内更有斜率） float errorThreshold = 90f; float normalizedError =
-    // Mathf.Clamp(error / errorThreshold, -1f, 1f);
+        // 基础高度PD控制：偏低则拉，下坠则拉
+        float pitchDemand = (altError * 0.05f) - (verticalVel * 0.1f);
 
-    // // 使用 3 次方，保证小角度极其平缓 float powerInput = Mathf.Pow(normalizedError, 3f);
+        // 升力补偿：坡度越大，需要的基础拉力越多
+        float currentRollRad = GetCurrentRoll() * Mathf.Deg2Rad;
+        float bankComp = (1f / Mathf.Max(Mathf.Cos(currentRollRad), 0.2f)) - 1f;
+        pitchDemand += bankComp * 0.15f;
 
-    // // 2. 阻尼归一化 假设飞机最大翻滚速度为 180 deg/s，将其映射到 0-1 范围 float maxExpectedVelocity = 180f; float
-    // normalizedVel = Mathf.Clamp(rollVel / maxExpectedVelocity, -1f, 1f);
+        // 空速衰减保护
+        float currentSpeed = base.rb.linearVelocity.magnitude;
+        float maxPitch = Mathf.Clamp01((currentSpeed - 60f) / 60f);
 
-    // // 阻尼系数不应超过 1.0，通常 0.2-0.5 足够防止震荡 float dampingCoefficient = 0.4f; float dampingForce =
-    // normalizedVel * dampingCoefficient;
+        // 允许微弱推杆防止爬升过高，限制最大拉力防止失速
+        float targetPitch = Mathf.Clamp(pitchDemand, -0.2f, maxPitch);
 
-    // // 3. 合成输入 float finalInput = powerInput - dampingForce;
-
-    // // 4. 限制导数（保持物理平滑） base.Roll = Mathf.MoveTowards(base.Roll, Mathf.Clamp(finalInput, -1f, 1f),
-    // Time.fixedDeltaTime * 2.0f);
-
-    //    // 5. 强制死区
-    //    if (Mathf.Abs(error) < 1.0f && Mathf.Abs(rollVel) < 1.0f)
-    //    {
-    //        base.Roll = 0f;
-    //    }
-    //}
+        base.Pitch = Mathf.MoveTowards(base.Pitch, targetPitch, Time.fixedDeltaTime * 3.0f);
+    }
 
     public void ApplyRollTask(float targetBank)
     {
@@ -173,29 +150,43 @@ public class JetNpcController : AirplaneController
         float error = Mathf.DeltaAngle(current, targetBank);
         float rollVel = transform.InverseTransformDirection(rb.angularVelocity).z * Mathf.Rad2Deg;
 
-        // 1. 降低阈值：让控制器在更小的角度范围内就感到“急迫”
+        // 1. 基础误差映射
         float errorThreshold = 45f;
         float normalizedError = Mathf.Clamp(error / errorThreshold, -1f, 1f);
-
-        // 2. 降低幂次：从 3 次方降到 1.5 次方，提升小角度响应 使用 Sign 保持方向
         float powerInput = Mathf.Sign(normalizedError) * Mathf.Pow(Mathf.Abs(normalizedError), 1.5f);
 
-        // 3. 动态阻尼归一化
-        float maxExpectedVelocity = 120f; // 调低预期速度上限，使阻尼感更清晰
+        // 2. 阻尼计算
+        float maxExpectedVelocity = 120f;
         float normalizedVel = Mathf.Clamp(rollVel / maxExpectedVelocity, -1f, 1f);
         float dampingCoefficient = 0.35f;
         float dampingForce = normalizedVel * dampingCoefficient;
 
-        // 4. 合成输入：加入最小起步量（Bias） 只要误差存在且角速度较小，就给一个保底的纠正力
-        float finalInput = powerInput - dampingForce;
-
-        if (Mathf.Abs(error) > 2.0f && Mathf.Abs(finalInput) < 0.05f)
+        // 3. 原始合成输入与起步量
+        float rawInput = powerInput - dampingForce;
+        if (Mathf.Abs(error) > 2.0f && Mathf.Abs(rawInput) < 0.05f)
         {
-            finalInput = Mathf.Sign(error) * 0.05f;
+            rawInput = Mathf.Sign(error) * 0.05f;
         }
 
-        // 5. 提高变化速率：让舵面反应更快，2.0 提升到 5.0
-        base.Roll = Mathf.MoveTowards(base.Roll, Mathf.Clamp(finalInput, -1f, 1f), Time.fixedDeltaTime * 5.0f);
+        // --- 核心改动：基于动压的控制律衰减 (Gain Scheduling) ---
+        float currentAirspeed = rb.linearVelocity.magnitude;
+        float baseSpeed = 200f; // 以你测试手感最好的 200 空速为基准
+
+        // 计算速度比。使用 Max 保证在低速（<200）时不会反向放大杆量导致失速抖动
+        float speedRatio = Mathf.Max(currentAirspeed / baseSpeed, 1f);
+
+        // 气动力与速度的平方成正比，因此理论上杆量需要除以速度比的平方。 为了保留一点高机动性，这里使用 1.5 到 2.0 次方进行衰减。
+        float dynamicAttenuation = 1f / Mathf.Pow(speedRatio, 1.8f);
+
+        // 将衰减系数应用到输入上（在 400 空速时，输入量会自动缩小到原本的约 28%）
+        float finalInput = rawInput * dynamicAttenuation;
+
+        // --- 核心改动：动态打杆速率限制 --- 在 200 空速可以瞬间推满杆 (5.0f) 在 400 空速必须柔和推杆 (可能只需 1.5f)，防止气动力瞬间冲击导致物理引擎震荡
+        float stickMoveRate = Mathf.Lerp(5.0f, 1.5f, (currentAirspeed - baseSpeed) / 200f);
+        stickMoveRate = Mathf.Clamp(stickMoveRate, 1.0f, 5.0f);
+
+        // 5. 应用最终输入
+        base.Roll = Mathf.MoveTowards(base.Roll, Mathf.Clamp(finalInput, -1f, 1f), Time.fixedDeltaTime * stickMoveRate);
 
         // 6. 精细死区
         if (Mathf.Abs(error) < 0.8f && Mathf.Abs(rollVel) < 1.0f)
@@ -264,6 +255,12 @@ public class JetNpcController : AirplaneController
         base.Pitch = 0f;
         base.Roll = 0f;
         base.Yaw = 0f;
+    }
+
+    // 获取当前的俯仰正弦值（直接反映机头高低）
+    public float GetSecurePitch()
+    {
+        return transform.forward.y * 90f; // 简单映射到 -90 到 90
     }
 
     public float GetCurrentRoll()
