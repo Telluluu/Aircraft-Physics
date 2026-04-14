@@ -123,44 +123,43 @@ public class JetNpcController : AirplaneController
         float altError = targetAlt - transform.position.y;
         float verticalVel = base.rb.linearVelocity.y;
 
-        // 1. 计算为了修正高度，需要的垂直速率 (Vertical Speed Demand) 增加 altError 权重，让高度修正更果断
-        float desiredVSpeed = (altError * 1.5f) - (verticalVel * 0.2f);
-        desiredVSpeed = Mathf.Clamp(desiredVSpeed, -20f, 25f);
+        // 1. 显著提高 PD 增益：让垂直速率的需求更饥渴
+        float desiredVSpeed = (altError * 3.0f) - (verticalVel * 0.4f);
+        desiredVSpeed = Mathf.Clamp(desiredVSpeed, -40f, 50f); // 放开限速
 
-        // 2. 将垂直速率映射为本地俯仰需求
+        // 2. 映射为本地俯仰需求
         float currentRollRad = GetCurrentRoll() * Mathf.Deg2Rad;
         float cosRoll = Mathf.Max(Mathf.Cos(currentRollRad), 0.1f);
-
-        // 核心修正：在坡度下，垂直方向的效率是 cosRoll 我们需要把世界空间的垂直需求转为机身本地空间的拉杆需求
         float pitchAngleDemand = desiredVSpeed / cosRoll;
 
-        // 3. 获取本地 X 轴角速度（俯仰速率）
+        // 3. 获取本地角速度
         float pitchVel = transform.InverseTransformDirection(rb.angularVelocity).x * Mathf.Rad2Deg;
 
-        // 4. 计算杆量输入（对齐 Roll 的逻辑） 目标：让飞机产生能够维持高度的角速度
-        float errorThreshold = 30f;
+        // 4. 降低 errorThreshold：让满杆阈值变小（15度就打满杆）
+        float errorThreshold = 15f;
         float normalizedError = Mathf.Clamp(pitchAngleDemand / errorThreshold, -1f, 1f);
 
-        // 使用 1.5 次幂提升小角度响应
-        float powerInput = Mathf.Sign(normalizedError) * Mathf.Pow(Mathf.Abs(normalizedError), 1.5f);
+        // 降低幂次：从 1.5 降到 1.1，接近线性，小误差时也会给大杆量
+        float powerInput = Mathf.Sign(normalizedError) * Mathf.Pow(Mathf.Abs(normalizedError), 1.1f);
 
-        // 阻尼：防止俯仰抖动
-        float damping = (pitchVel / 90f) * 0.4f;
-        float rawInput = powerInput - damping;
+        // 维持阻尼：防止由于增益过大导致的机头颤动
+        float damping = (pitchVel / 90f) * 0.5f;
 
-        // 5. 动压衰减 (Gain Scheduling)
+        // 注意：这里要符合“负值为拉杆”的映射逻辑 如果 pitchAngleDemand > 0 (需要抬头)，powerInput 为正，rawInput 为负（拉杆）
+        float rawInput = damping - (powerInput * 1.5f); // 基础倍率直接给 1.5 倍
+
+        // 5. 降低动压衰减的影响：让高速下依然保留更多控制力
         float currentAirspeed = rb.linearVelocity.magnitude;
         float speedRatio = Mathf.Max(currentAirspeed / 200f, 1f);
-        float dynamicAttenuation = 1f / Mathf.Pow(speedRatio, 1.8f);
+        float dynamicAttenuation = 1f / Mathf.Pow(speedRatio, 1.2f); // 1.8 降到 1.2
 
-        // 6. 最终输出
         float finalInput = rawInput * dynamicAttenuation;
 
-        // 限制最大拉杆量，防止大速度下过载过大，同时保证有足够的力
-        finalInput = Mathf.Clamp(finalInput, -0.4f, 0.85f);
+        // 6. 放开杆量限制：允许瞬间推/拉到极限
+        finalInput = Mathf.Clamp(finalInput, -1.0f, 1.0f);
 
-        // 提高 MoveTowards 速率，让舵面反应跟上姿态变化
-        base.Pitch = Mathf.MoveTowards(base.Pitch, finalInput, Time.fixedDeltaTime * 5.0f);
+        // 极速打杆：MoveTowards 系数从 5.0 提到 10.0
+        base.Pitch = Mathf.MoveTowards(base.Pitch, finalInput, Time.fixedDeltaTime * 10.0f);
     }
 
     public void ApplyRollTask(float targetBank)
@@ -216,50 +215,42 @@ public class JetNpcController : AirplaneController
 
     public void ApplyPitchTask(float targetPitch)
     {
-        // 1. 获取当前俯仰角并计算误差
         float current = GetSecurePitch();
         float error = Mathf.DeltaAngle(current, targetPitch);
-
-        // 获取本地 X 轴角速度 (俯仰速率)
         float pitchVel = transform.InverseTransformDirection(rb.angularVelocity).x * Mathf.Rad2Deg;
 
-        // 2. 基础误差映射
-        float errorThreshold = 30f;
+        // 1. 减小满杆阈值：15度误差就给满杆
+        float errorThreshold = 15f;
         float normalizedError = Mathf.Clamp(error / errorThreshold, -1f, 1f);
-        // 使用 1.5 次幂保持中心灵敏度
-        float powerInput = Mathf.Sign(normalizedError) * Mathf.Pow(Mathf.Abs(normalizedError), 1.5f);
 
-        // 3. 阻尼计算
-        float maxExpectedVelocity = 90f;
-        float normalizedVel = Mathf.Clamp(pitchVel / maxExpectedVelocity, -1f, 1f);
-        float dampingCoefficient = 0.4f;
-        float dampingForce = normalizedVel * dampingCoefficient;
+        // 2. 使用线性或低幂次：确保小角度时依然有极强修正力
+        float powerInput = Mathf.Sign(normalizedError) * Mathf.Pow(Mathf.Abs(normalizedError), 1.0f);
 
-        // 4. 合成输入（注意：这里改为 dampingForce - powerInput，以满足负值拉杆） 如果 error > 0 (目标在上方，需要抬头)，powerInput 为正，计算结果为负，即拉杆
-        float rawInput = dampingForce - powerInput;
+        // 3. 增强阻尼，抵消大增益带来的超调
+        float dampingForce = Mathf.Clamp(pitchVel / 90f, -1f, 1f) * 0.6f;
 
-        // 起步量补偿（针对负向逻辑调整）
-        if (Mathf.Abs(error) > 1.5f && Mathf.Abs(rawInput) < 0.05f)
+        // 4. 合成输入
+        float rawInput = dampingForce - (powerInput * 1.2f);
+
+        // 增加起步 Bias：只要误差大于 0.5 度，至少给 0.1 的杆量
+        if (Mathf.Abs(error) > 0.5f && Mathf.Abs(rawInput) < 0.1f)
         {
-            rawInput = -Mathf.Sign(error) * 0.05f;
+            rawInput = -Mathf.Sign(error) * 0.1f;
         }
 
-        // --- 基于动压的控制律衰减 ---
+        // 5. 动压衰减同样调平缓
         float currentAirspeed = rb.linearVelocity.magnitude;
-        float baseSpeed = 200f;
-        float speedRatio = Mathf.Max(currentAirspeed / baseSpeed, 1f);
-        float dynamicAttenuation = 1f / Mathf.Pow(speedRatio, 1.8f);
+        float speedRatio = Mathf.Max(currentAirspeed / 200f, 1f);
+        float dynamicAttenuation = 1f / Mathf.Pow(speedRatio, 1.2f);
+
+        // 6. 应用最终输入
         float finalInput = rawInput * dynamicAttenuation;
 
-        // --- 动态打杆速率限制 ---
-        float stickMoveRate = Mathf.Lerp(4.0f, 1.0f, (currentAirspeed - baseSpeed) / 200f);
-        stickMoveRate = Mathf.Clamp(stickMoveRate, 1.0f, 4.0f);
+        // 瞬时响应：MoveTowards 提升到 8.0
+        base.Pitch = Mathf.MoveTowards(base.Pitch, Mathf.Clamp(finalInput, -1f, 1f), Time.fixedDeltaTime * 8.0f);
 
-        // 5. 应用最终输入
-        base.Pitch = Mathf.MoveTowards(base.Pitch, Mathf.Clamp(finalInput, -1f, 1f), Time.fixedDeltaTime * stickMoveRate);
-
-        // 6. 精细死区
-        if (Mathf.Abs(error) < 0.5f && Mathf.Abs(pitchVel) < 0.8f)
+        // 极小的死区
+        if (Mathf.Abs(error) < 0.2f && Mathf.Abs(pitchVel) < 0.5f)
         {
             base.Pitch = 0f;
         }
