@@ -22,8 +22,8 @@ public class JetNpcController : AirplaneController
         //Debug.Log("AirSpeed = " + base.rb.linearVelocity.magnitude);
         if (Input.GetKeyDown(KeyCode.C))
         {
-            // 1. 计算目标航向：当前机头水平面上的正后方
-            Vector3 targetHeading = -transform.forward;
+            // 1. 计算目标航向：当前机头水平面上的正后方 Vector3 targetHeading = -transform.forward;
+            Vector3 targetHeading = transform.right - transform.forward;
             targetHeading.y = 0; // 锁定在水平面上
             targetHeading.Normalize();
 
@@ -35,15 +35,15 @@ public class JetNpcController : AirplaneController
             }
 
             // 3. 启动转冷动作
-            activeManeuver = StartCoroutine(Maneuver_TurnCold(targetHeading));
+            activeManeuver = StartCoroutine(Maneuver_Turn(targetHeading, 80f));
 
             Debug.Log($"[Test] 触发转冷机动。目标航向: {targetHeading}");
         }
     }
 
-    public IEnumerator Maneuver_TurnCold(Vector3 finalHeading)
+    public IEnumerator Maneuver_Turn(Vector3 finalHeading, float targetRoll = 80f)
     {
-        Debug.Log("Maneuver: 开始转冷 (Level 180 Turn)");
+        Debug.Log("Maneuver: 开始转向");
 
         float requiredStableDuration = 0.5f;
         float stableTime = 0f;
@@ -57,7 +57,7 @@ public class JetNpcController : AirplaneController
         // 阶段 1：建立坡度
         while (stableTime < requiredStableDuration)
         {
-            float rollError = Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), 85f));
+            float rollError = Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), targetRoll));
 
             if (rollError < 2f)
             {
@@ -68,7 +68,7 @@ public class JetNpcController : AirplaneController
                 stableTime = 0f;
             }
 
-            ApplyRollTask(85f);
+            ApplyRollTask(targetRoll);
             MaintainTurnAltitude(targetAltitude);
             base.Yaw = 0f;
             yield return new WaitForFixedUpdate();
@@ -83,7 +83,7 @@ public class JetNpcController : AirplaneController
             planarForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
 
             // 固定维持第一阶段建立的坡度，不再动态调整
-            ApplyRollTask(85f);
+            ApplyRollTask(targetRoll);
 
             // 仅通过高度偏差来控制俯仰
             MaintainTurnAltitude(targetAltitude);
@@ -114,7 +114,7 @@ public class JetNpcController : AirplaneController
         }
 
         ResetInputs();
-        Debug.Log("Maneuver: 转冷完成");
+        Debug.Log("Maneuver: 转向完成");
     }
 
     // 专属辅助方法：在盘旋时维持高度
