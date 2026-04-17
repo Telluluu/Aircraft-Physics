@@ -27,14 +27,6 @@ public class AircraftPhysics : MonoBehaviour
         rb = GetComponent<Rigidbody>();
     }
 
-    private void Start()
-    {
-        // 自动设定重心以保证初始静稳定性
-        //rb.centerOfMass = CalculateIdealCenterOfMass(0.15f);
-
-        //Debug.Log($"理想重心已设定为本地坐标: {rb.centerOfMass}");
-    }
-
     private void FixedUpdate()
     {
         // 计算当前帧风吹在空气动力学表面上产生的力
