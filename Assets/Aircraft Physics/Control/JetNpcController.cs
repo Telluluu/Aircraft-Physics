@@ -57,7 +57,7 @@ public class JetNpcController : AirplaneController
         // 阶段 1：建立坡度
         while (stableTime < requiredStableDuration)
         {
-            float rollError = Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), 75f));
+            float rollError = Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), 85f));
 
             if (rollError < 2f)
             {
@@ -68,7 +68,7 @@ public class JetNpcController : AirplaneController
                 stableTime = 0f;
             }
 
-            ApplyRollTask(75f);
+            ApplyRollTask(85f);
             MaintainTurnAltitude(targetAltitude);
             base.Yaw = 0f;
             yield return new WaitForFixedUpdate();
@@ -83,7 +83,7 @@ public class JetNpcController : AirplaneController
             planarForward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
 
             // 固定维持第一阶段建立的坡度，不再动态调整
-            ApplyRollTask(75f);
+            ApplyRollTask(85f);
 
             // 仅通过高度偏差来控制俯仰
             MaintainTurnAltitude(targetAltitude);
