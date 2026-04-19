@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -13,35 +14,75 @@ public class JetNpcController : AirplaneController
     [Header("测试用变量")]
     public bool isCombatMode = false;
 
-    private Coroutine activeManeuver; // 用于记录当前运行的机动任务
+    private Coroutine maneuverRoutine; // 用于记录当前运行的机动任务
 
     protected override void Update()
     {
         // 基础动力维持
         base.thrustPercent = 1.0f;
-        //Debug.Log("AirSpeed = " + base.rb.linearVelocity.magnitude);
-        if (Input.GetKeyDown(KeyCode.C))
+        float currentAlt = transform.position.y;
+        if (Input.GetKeyDown(KeyCode.V))
         {
-            // 1. 计算目标航向：当前机头水平面上的正后方 Vector3 targetHeading = -transform.forward;
-            Vector3 targetHeading = transform.right - transform.forward;
-            targetHeading.y = 0; // 锁定在水平面上
-            targetHeading.Normalize();
+            // Split-S maneuverRoutine = StartCoroutine(Maneuver_Relative(180f, 180f, 5f));
+            maneuverRoutine = StartCoroutine(Maneuver_Relative(135f, 180f, 5f));
+            // High Yoyo
 
-            // 2. 状态清理：如果已有任务在运行，先停止，防止舵面控制权冲突
-            if (activeManeuver != null)
-            {
-                StopCoroutine(activeManeuver);
-                ResetInputs(); // 重置杆量防止残留
-            }
-
-            // 3. 启动转冷动作
-            activeManeuver = StartCoroutine(Maneuver_Turn(targetHeading, 80f));
-
-            Debug.Log($"[Test] 触发转冷机动。目标航向: {targetHeading}");
+            // Low Yoyo
         }
+        else if (Input.GetKeyDown(KeyCode.C))
+        {
+            // Turn cold
+            maneuverRoutine = StartCoroutine(Maneuver_Relative(85f, 180f, 5f));
+        }
+        if (base.rb.linearVelocity.magnitude < 300f)
+            Debug.Log("Speed = " + base.rb.linearVelocity.magnitude);
     }
 
-    public IEnumerator Maneuver_Turn(Vector3 finalHeading, float targetRoll = 80f)
+    public IEnumerator Maneuver_Relative(float targetRoll, float pitchDelta, float targetG)
+    {
+        // 阶段 1：对齐横滚
+        while (Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), targetRoll)) > 2f)
+        {
+            ApplyRollTask(targetRoll);
+            base.Pitch = 0f;
+            base.Yaw = 0f;
+            yield return null;
+        }
+
+        // --- 阶段 2 准备：计算目标向量 --- 以当前局部坐标系的右轴（Right）为旋转轴，将 forward 向量旋转 pitchDelta 度 注意：拉杆是绕着飞机的右轴（transform.right）向上旋转
+        Vector3 startForward = transform.forward;
+        Vector3 rotationAxis = transform.right;
+
+        // 计算目标机头指向（拉杆通常是负 Pitch 输入，但在角度旋转中需对应方向） 这里假设 pitchDelta 为正值，代表需要拉动的总角度
+        Quaternion targetRot = Quaternion.AngleAxis(-pitchDelta, rotationAxis);
+        Vector3 targetForward = targetRot * startForward;
+
+        float dot = 0f;
+        // 阶段 2：执行俯仰 当点乘值从负数或 0 增加到 接近 1 时，说明正在靠近目标 为了防止角度跨度过大导致的判定失败，可以结合“剩余角度”逻辑
+        while (dot < 0.99f)
+        {
+            Vector3 currentForward = transform.forward;
+            dot = Vector3.Dot(currentForward, targetForward);
+
+            // 判定剩余角度（用于平滑减速）
+            float remainingAngle = Vector3.Angle(currentForward, targetForward);
+
+            // 检查是否已经越过了目标点 如果当前帧与目标向量的夹角开始变大，则说明已经错过最接近点 这里简单处理：只要进入 1度 范围内就认为完成
+            if (remainingAngle < 1.0f) break;
+
+            // 输入控制
+            base.Pitch = -1.0f;
+            base.Roll = 0f;
+            base.Yaw = 0f;
+
+            yield return null;
+        }
+
+        ResetInputs();
+    }
+
+    // 平面转向机动动作
+    public IEnumerator Maneuver_PlaneTurn(Vector3 finalHeading, float targetRoll = 80f)
     {
         Debug.Log("Maneuver: 开始转向");
 
@@ -61,7 +102,7 @@ public class JetNpcController : AirplaneController
 
             if (rollError < 2f)
             {
-                stableTime += Time.fixedDeltaTime;
+                stableTime += Time.deltaTime;
             }
             else
             {
@@ -71,7 +112,7 @@ public class JetNpcController : AirplaneController
             ApplyRollTask(targetRoll);
             MaintainTurnAltitude(targetAltitude);
             base.Yaw = 0f;
-            yield return new WaitForFixedUpdate();
+            yield return null;
         }
 
         Debug.Log("Step 2");
@@ -88,7 +129,7 @@ public class JetNpcController : AirplaneController
             // 仅通过高度偏差来控制俯仰
             MaintainTurnAltitude(targetAltitude);
 
-            yield return new WaitForFixedUpdate();
+            yield return null;
         }
 
         Debug.Log("Step 3");
@@ -100,7 +141,7 @@ public class JetNpcController : AirplaneController
 
             if (rollError < 5f)
             {
-                stableTime += Time.fixedDeltaTime;
+                stableTime += Time.deltaTime;
             }
             else
             {
@@ -110,7 +151,7 @@ public class JetNpcController : AirplaneController
             ApplyRollTask(0f);
             ApplyPitchTask(0f);
             base.Yaw = 0f;
-            yield return new WaitForFixedUpdate();
+            yield return null;
         }
 
         ResetInputs();
@@ -215,7 +256,7 @@ public class JetNpcController : AirplaneController
 
     public void ApplyPitchTask(float targetPitch)
     {
-        float current = GetSecurePitch();
+        float current = GetCurrentPitch();
         float error = Mathf.DeltaAngle(current, targetPitch);
         float pitchVel = transform.InverseTransformDirection(rb.angularVelocity).x * Mathf.Rad2Deg;
 
@@ -291,7 +332,7 @@ public class JetNpcController : AirplaneController
     }
 
     // 获取当前的俯仰正弦值（直接反映机头高低）
-    public float GetSecurePitch()
+    public float GetCurrentPitch()
     {
         return transform.forward.y * 90f; // 简单映射到 -90 到 90
     }
