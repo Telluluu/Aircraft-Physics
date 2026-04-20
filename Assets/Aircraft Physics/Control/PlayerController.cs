@@ -1,6 +1,8 @@
+using HomingMissile;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.UIElements.InputSystem;
 
 public class PlayerController : AirplaneController
 {
@@ -39,8 +41,6 @@ public class PlayerController : AirplaneController
         Pitch = Input.GetAxis("Vertical");
         Roll = Input.GetAxis("Horizontal");
         Yaw = Input.GetAxis("Yaw");
-
-        //UpdateMouseSteering();
 
         // 节流阀
         if (Input.GetKeyDown(KeyCode.Space))
