@@ -16,7 +16,7 @@ MonoBehaviour:
   skinFriction: 0.01
   zeroLiftAoA: 0
   stallAngleHigh: 30
-  stallAngleLow: -15
+  stallAngleLow: -30
   chord: 0.45
   flapFraction: 0
   span: 0.22
