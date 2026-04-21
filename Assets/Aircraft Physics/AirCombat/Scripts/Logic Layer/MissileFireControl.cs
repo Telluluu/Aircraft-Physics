@@ -35,11 +35,12 @@ public class MissileFireControl : MonoBehaviour
     {
         // 初始化导弹参数（根据你的导弹性能填写）
         myMissile.velocity = 600f;      // 初始速度 600m/s (约2马赫)
-        myMissile.mass = 150f;
-        myMissile.thrust = 500f;
+        myMissile.mass = 153f;
+        myMissile.thrust = 27000f;
         myMissile.dragCoeff = 0.02f;
         myMissile.maxOverload = 30f;    // 12G
-        myMissile.guidanceGain = 3.0f;  // N=4
+        myMissile.guidanceGain = 4.0f;  // N=4
+        myMissile.powerTime = 8f;
         m_Solver = new EnvelopeSolver();
         m_LaunchRanges = new LaunchRange[24];
 #if Debugging

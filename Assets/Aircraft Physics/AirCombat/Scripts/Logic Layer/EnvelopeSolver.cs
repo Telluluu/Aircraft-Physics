@@ -22,6 +22,7 @@ public class EnvelopeSolver
         public float maxOverload;   // nzMax
         public float guidanceGain;  // N
         public float initialMissilePsi; // 导弹的发射离轴角（载机朝向与视线方向的夹角)，弧度
+        public float powerTime;     // 动力段时间
     }
 
     [Serializable]
@@ -59,7 +60,6 @@ public class EnvelopeSolver
         float minRange = 500f;
         float maxRange = 1000000f;
         float finalRange = 0f;
-
         // 论文 2.2 二分法循环
         for (int i = 0; i < 20; i++)
         {
@@ -200,6 +200,8 @@ public class EnvelopeSolver
 
     private State GetDerivatives(State s, MissileParams mp, float nz)
     {
+        float currentThrust = (s.time <= mp.powerTime) ? mp.thrust : 0;
+        // currentThrust = mp.thrust;
         State d = new State();
         // 1. 基础阻力 (零升阻力)
         float dragZero = mp.dragCoeff * s.v * s.v;
@@ -214,7 +216,7 @@ public class EnvelopeSolver
         //}
 
         float totalDrag = dragZero + inducedDrag;
-        d.v = (mp.thrust - totalDrag) / mp.mass; // Vm_dot = (T-D)/m
+        d.v = (currentThrust - totalDrag) / mp.mass; // Vm_dot = (T-D)/m
         d.psi = (s.v > 0.1f) ? (G * nz) / s.v : 0; // PsiM_dot = g*nz/Vm
         d.x = s.v * (float)Math.Cos(s.psi); // XM_dot
         d.z = -s.v * (float)Math.Sin(s.psi); // ZM_dot
