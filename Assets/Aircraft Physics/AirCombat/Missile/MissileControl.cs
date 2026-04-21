@@ -30,6 +30,8 @@ public class MissileController : AirplaneController
     // 第二步：导弹雷达引导
     public int m_step = 0;
 
+    public bool m_isFindTarget = false;
+
     protected override void Start()
     {
         base.Start();
@@ -41,44 +43,49 @@ public class MissileController : AirplaneController
 
     protected override void Update()
     {
-        if (Input.GetKey(KeyCode.UpArrow))
-        {
-            base.Pitch = -0.1f;
-        }
-        else if (Input.GetKey(KeyCode.DownArrow))
-        {
-            base.Pitch = 0.1f;
-        }
-        else
-        {
-            base.Pitch = 0;
-        }
+        //if (Input.GetKey(KeyCode.UpArrow))
+        //{
+        //    base.Pitch = -0.1f;
+        //}
+        //else if (Input.GetKey(KeyCode.DownArrow))
+        //{
+        //    base.Pitch = 0.1f;
+        //}
+        //else
+        //{
+        //    base.Pitch = 0;
+        //}
 
-        if (Input.GetKey(KeyCode.LeftArrow))
-        {
-            base.Yaw = -0.1f;
-        }
-        else if (Input.GetKey(KeyCode.RightArrow))
-        {
-            base.Yaw = 0.1f;
-        }
-        else
-        {
-            base.Yaw = 0;
-        }
-
+        //if (Input.GetKey(KeyCode.LeftArrow))
+        //{
+        //    base.Yaw = -0.1f;
+        //}
+        //else if (Input.GetKey(KeyCode.RightArrow))
+        //{
+        //    base.Yaw = 0.1f;
+        //}
+        //else
+        //{
+        //    base.Yaw = 0;
+        //}
+        // 载机数据链引导
         if (m_step == 0)
         {
         }
         else if (m_step == 1)
         {
+            // 导弹雷达引导
+            m_isFindTarget = missileRadar.CheckTarget(target);
         }
 
-        // 1. 执行制导律计算
-        Vector3 guidanceCommand = CalculateProportionalNavigation();
+        if (m_isFindTarget)
+        {
+            // 1. 执行制导律计算
+            Vector3 guidanceCommand = CalculateProportionalNavigation();
 
-        // 2. 将世界空间的过载指令转换为本地控制杆量
-        ApplyGuidanceToSurfaces(guidanceCommand);
+            // 2. 将世界空间的过载指令转换为本地控制杆量
+            ApplyGuidanceToSurfaces(guidanceCommand);
+        }
 
         //if (!_isLaunched) return;
 
