@@ -72,38 +72,6 @@ public class PlayerController : AirplaneController
         displayText.text += brakesTorque > 0 ? "B: ON" : "B: OFF";
     }
 
-    //protected override void FixedUpdate()
-    //{
-    //    SetControlSurfecesAngles(Pitch, Roll, Yaw, Flap);
-    //    aircraftPhysics.SetThrustPercent(thrustPercent);
-    //    foreach (var wheel in wheels)
-    //    {
-    //        wheel.brakeTorque = brakesTorque;
-    //        // small torque to wake up wheel collider
-    //        wheel.motorTorque = 0.01f;
-    //    }
-    //}
-
-    //public void SetControlSurfecesAngles(float pitch, float roll, float yaw, float flap)
-    //{
-    //    foreach (var surface in controlSurfaces)
-    //    {
-    //        if (surface == null || !surface.IsControlSurface) continue;
-    //        switch (surface.InputType)
-    //        {
-    //            case ControlInputType.Pitch:
-    //                surface.SetFlapAngle(pitch * pitchControlSensitivity * surface.InputMultiplyer);
-    //                break;
-
-    // case ControlInputType.Roll: surface.SetFlapAngle(roll * rollControlSensitivity *
-    // surface.InputMultiplyer); break;
-
-    // case ControlInputType.Yaw: surface.SetFlapAngle(yaw * yawControlSensitivity *
-    // surface.InputMultiplyer); break;
-
-    // case ControlInputType.Flap: surface.SetFlapAngle(Flap * surface.InputMultiplyer); break; } }
-    //}
-
     private void OnDrawGizmos()
     {
         if (!Application.isPlaying)
