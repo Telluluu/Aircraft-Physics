@@ -1,9 +1,7 @@
-using System.Collections;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using UnityEngine;
 
-public class MissileFireControl : MonoBehaviour
+public class MissileEnvelope : MonoBehaviour
 {
     [Header("References")]
     public Transform targetTransform; // 锁定的目标

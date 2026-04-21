@@ -1,5 +1,6 @@
 using UnityEngine;
-using static MissileFireControl;
+
+//using static MissileFireControl;
 
 public class EnvelopeDrawer : MonoBehaviour
 {
@@ -22,7 +23,7 @@ public class EnvelopeDrawer : MonoBehaviour
     // 内部平滑缓存，防止解算跳变
     private float[] lerpRMax, lerpRMin, lerpNezMax, lerpNezMin;
 
-    private LaunchRange[] latestData;
+    private MissileEnvelope.LaunchRange[] latestData;
     private bool initialized = false;
 
     private void Start()
@@ -48,7 +49,7 @@ public class EnvelopeDrawer : MonoBehaviour
     /// <summary>
     /// 当你的后台解算循环拿到新数据时，调用此方法传入 LaunchRange[]
     /// </summary>
-    public void PushNewData(LaunchRange[] newData)
+    public void PushNewData(MissileEnvelope.LaunchRange[] newData)
     {
         if (newData == null || newData.Length == 0) return;
 
