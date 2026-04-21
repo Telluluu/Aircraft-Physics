@@ -23,24 +23,20 @@ public class MissileController : AirplaneController
     private Vector3 _lastTargetPosition;
     private Vector3 _lastMissilePosition;
 
+    // 两步制导
+
+    // 第一步：载机雷达数据链引导
+
+    // 第二步：导弹雷达引导
+    public int m_step = 0;
+
     protected override void Start()
     {
         base.Start();
         // 初始状态下物理引擎和推力关闭
         base.thrustPercent = 1;
-    }
-
-    public void Launch(Transform targetTransform)
-    {
-        target = targetTransform;
-        _isLaunched = true;
-        _launchTime = Time.time;
-        _lastTargetPosition = target.position;
-        _lastMissilePosition = transform.position;
-
-        // 开启物理
-        rb.isKinematic = false;
-        base.thrustPercent = 1.0f;
+        missileRadar.isWoking = false;
+        m_step = 0;
     }
 
     protected override void Update()
@@ -71,6 +67,19 @@ public class MissileController : AirplaneController
             base.Yaw = 0;
         }
 
+        if (m_step == 0)
+        {
+        }
+        else if (m_step == 1)
+        {
+        }
+
+        // 1. 执行制导律计算
+        Vector3 guidanceCommand = CalculateProportionalNavigation();
+
+        // 2. 将世界空间的过载指令转换为本地控制杆量
+        ApplyGuidanceToSurfaces(guidanceCommand);
+
         //if (!_isLaunched) return;
 
         //// 动力衰减逻辑
@@ -88,20 +97,39 @@ public class MissileController : AirplaneController
 
     protected override void FixedUpdate()
     {
-        //if (!_isLaunched || target == null) return;
+        if (!_isLaunched || target == null) return;
 
-        //// 1. 执行制导律计算
-        //Vector3 guidanceCommand = CalculateProportionalNavigation();
-
-        //// 2. 将世界空间的过载指令转换为本地控制杆量
-        //ApplyGuidanceToSurfaces(guidanceCommand);
-
-        // 3. 执行基础物理更新
         base.FixedUpdate();
+    }
+
+    public void Launch(Transform targetTransform)
+    {
+        target = targetTransform;
+        _isLaunched = true;
+        _launchTime = Time.time;
+        _lastTargetPosition = target.position;
+        _lastMissilePosition = transform.position;
+
+        // 开启物理
+        rb.isKinematic = false;
+        base.thrustPercent = 1.0f;
+    }
+
+    public void RaddarStart()
+    {
+        missileRadar.isWoking = true;
+        m_step = 1;
+        missileRadar.ScanTargets();
+        bool isFindTarget = false;
+        if (target != null)
+            isFindTarget = missileRadar.CheckTarget(target);
+        else target = missileRadar.lockedTargets[0].transform;
     }
 
     private Vector3 CalculateProportionalNavigation()
     {
+        if (target == null) return Vector3.zero;
+
         // 相对位移与相对速度
         Vector3 relativePos = target.position - transform.position;
         Vector3 relativeVel = (target.position - _lastTargetPosition) / Time.fixedDeltaTime - rb.linearVelocity;
