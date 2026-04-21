@@ -19,6 +19,8 @@ public class DopplerRadar : MonoBehaviour
 
     private Rigidbody rb;
 
+    public bool isWoking = true;
+
     private void Start()
     {
         rb = GetComponentInParent<Rigidbody>();
@@ -26,9 +28,14 @@ public class DopplerRadar : MonoBehaviour
 
     private void Update()
     {
-        ScanTargets();
         if (radarLockonUI != null)
             radarLockonUI.SetTargets(lockedTargets);
+    }
+
+    private void FixedUpdate()
+    {
+        if (isWoking)
+            ScanTargets();
     }
 
     private void ScanTargets()
