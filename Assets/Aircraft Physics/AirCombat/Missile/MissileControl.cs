@@ -15,6 +15,8 @@ public class MissileController : AirplaneController
 
     public float navigationConstant = 4.0f; // 比例制导常数 (N)，通常取 3-5
     public float activationDelay = 0.5f;    // 发射后安全延迟（防炸自己）
+    public DopplerRadar missileRadar;
+    public DopplerRadar aircraftRadar;
 
     private bool _isLaunched = false;
     private float _launchTime;
@@ -25,7 +27,7 @@ public class MissileController : AirplaneController
     {
         base.Start();
         // 初始状态下物理引擎和推力关闭
-        base.thrustPercent = 0;
+        base.thrustPercent = 1;
     }
 
     public void Launch(Transform targetTransform)
@@ -43,22 +45,30 @@ public class MissileController : AirplaneController
 
     protected override void Update()
     {
-        if (Input.GetKeyDown(KeyCode.UpArrow))
+        if (Input.GetKey(KeyCode.UpArrow))
         {
-            base.Pitch = -1;
+            base.Pitch = -0.1f;
         }
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        else if (Input.GetKey(KeyCode.DownArrow))
         {
-            base.Pitch = 1;
+            base.Pitch = 0.1f;
+        }
+        else
+        {
+            base.Pitch = 0;
         }
 
-        if (Input.GetKeyDown(KeyCode.LeftArrow))
+        if (Input.GetKey(KeyCode.LeftArrow))
         {
-            base.Yaw = -1;
+            base.Yaw = -0.1f;
         }
-        else if (Input.GetKeyDown(KeyCode.RightArrow))
+        else if (Input.GetKey(KeyCode.RightArrow))
         {
-            base.Yaw = 1;
+            base.Yaw = 0.1f;
+        }
+        else
+        {
+            base.Yaw = 0;
         }
 
         //if (!_isLaunched) return;
@@ -78,13 +88,13 @@ public class MissileController : AirplaneController
 
     protected override void FixedUpdate()
     {
-        if (!_isLaunched || target == null) return;
+        //if (!_isLaunched || target == null) return;
 
-        // 1. 执行制导律计算
-        Vector3 guidanceCommand = CalculateProportionalNavigation();
+        //// 1. 执行制导律计算
+        //Vector3 guidanceCommand = CalculateProportionalNavigation();
 
-        // 2. 将世界空间的过载指令转换为本地控制杆量
-        ApplyGuidanceToSurfaces(guidanceCommand);
+        //// 2. 将世界空间的过载指令转换为本地控制杆量
+        //ApplyGuidanceToSurfaces(guidanceCommand);
 
         // 3. 执行基础物理更新
         base.FixedUpdate();
