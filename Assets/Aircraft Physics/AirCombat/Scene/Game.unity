@@ -5075,30 +5075,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 939934606175192584, guid: 3ff303e328327904b80a465d34bba543,
-        type: 3}
-      propertyPath: m_Name
-      value: Wing3
-      objectReference: {fileID: 0}
     - target: {fileID: 3009495699609454254, guid: 3ff303e328327904b80a465d34bba543,
         type: 3}
       propertyPath: m_Name
       value: Missile
-      objectReference: {fileID: 0}
-    - target: {fileID: 3075576294317306145, guid: 3ff303e328327904b80a465d34bba543,
-        type: 3}
-      propertyPath: m_Name
-      value: Wing2
-      objectReference: {fileID: 0}
-    - target: {fileID: 3986077616651482896, guid: 3ff303e328327904b80a465d34bba543,
-        type: 3}
-      propertyPath: m_Name
-      value: Wing4
-      objectReference: {fileID: 0}
-    - target: {fileID: 4905904057492849531, guid: 3ff303e328327904b80a465d34bba543,
-        type: 3}
-      propertyPath: m_Name
-      value: Wing5
       objectReference: {fileID: 0}
     - target: {fileID: 6686740053434903025, guid: 3ff303e328327904b80a465d34bba543,
         type: 3}
@@ -5149,26 +5129,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6693893298390789340, guid: 3ff303e328327904b80a465d34bba543,
-        type: 3}
-      propertyPath: m_Mass
-      value: 152
-      objectReference: {fileID: 0}
-    - target: {fileID: 6834334737959672959, guid: 3ff303e328327904b80a465d34bba543,
-        type: 3}
-      propertyPath: m_Name
-      value: Wing6
-      objectReference: {fileID: 0}
-    - target: {fileID: 8640024816188778067, guid: 3ff303e328327904b80a465d34bba543,
-        type: 3}
-      propertyPath: m_Name
-      value: Wing7
-      objectReference: {fileID: 0}
-    - target: {fileID: 9116369248305383526, guid: 3ff303e328327904b80a465d34bba543,
-        type: 3}
-      propertyPath: m_Name
-      value: Wing1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -5301,6 +5261,16 @@ PrefabInstance:
       propertyPath: targetTransform
       value: 
       objectReference: {fileID: 1059740857}
+    - target: {fileID: 968293573911517630, guid: 054597c06f15be44a85e420d570e9c68,
+        type: 3}
+      propertyPath: m_Name
+      value: LaunchEnvelopeCalculator
+      objectReference: {fileID: 0}
+    - target: {fileID: 1284646692186163006, guid: 054597c06f15be44a85e420d570e9c68,
+        type: 3}
+      propertyPath: m_Name
+      value: WeaponSystem
+      objectReference: {fileID: 0}
     - target: {fileID: 1591873566031591483, guid: 054597c06f15be44a85e420d570e9c68,
         type: 3}
       propertyPath: m_Name
@@ -5315,6 +5285,21 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalPosition.z
       value: -5.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 5868984452934469727, guid: 054597c06f15be44a85e420d570e9c68,
+        type: 3}
+      propertyPath: maxRange
+      value: 100000
+      objectReference: {fileID: 0}
+    - target: {fileID: 5868984452934469727, guid: 054597c06f15be44a85e420d570e9c68,
+        type: 3}
+      propertyPath: scanAngle
+      value: 120
+      objectReference: {fileID: 0}
+    - target: {fileID: 5868984452934469727, guid: 054597c06f15be44a85e420d570e9c68,
+        type: 3}
+      propertyPath: minDopplerVelocity
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 6421437300529308224, guid: 054597c06f15be44a85e420d570e9c68,
         type: 3}
@@ -5620,11 +5605,13 @@ MonoBehaviour:
   Roll: 0
   Flap: 0
   displayText: {fileID: 0}
+  motorThrust: 50000
+  burnTime: 8
+  proximityRange: 10
+  maxG: 30
   target: {fileID: 1760486992}
-  cruiseSpeed: 250
-  combatSpeed: 350
-  crankAngle: 50
-  isCombatMode: 0
+  navigationConstant: 4
+  activationDelay: 0.5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
