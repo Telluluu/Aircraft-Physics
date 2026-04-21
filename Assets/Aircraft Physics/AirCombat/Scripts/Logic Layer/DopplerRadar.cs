@@ -35,12 +35,17 @@ public class DopplerRadar : MonoBehaviour
     private void FixedUpdate()
     {
         if (isWoking)
-            ScanTargets();
+            lockedTargets = ScanTargets();
     }
 
-    private void ScanTargets()
+    public bool CheckTarget(Transform target)
     {
-        lockedTargets.Clear();
+        return lockedTargets.Contains(target);
+    }
+
+    public List<Transform> ScanTargets()
+    {
+        List<Transform> newLockedTargets = new List<Transform>();
         Collider[] potentialTargets = Physics.OverlapSphere(transform.position, maxRange, targetMask);
 
         Vector3 VM = rb != null ? rb.linearVelocity : Vector3.zero;
@@ -82,9 +87,10 @@ public class DopplerRadar : MonoBehaviour
             }
 
             // 5. 锁定成功
-            lockedTargets.Add(hit.transform);
+            newLockedTargets.Add(hit.transform);
             Debug.DrawLine(transform.position, hit.transform.position, Color.green);
         }
+        return newLockedTargets;
     }
 
     private void OnDrawGizmos()
