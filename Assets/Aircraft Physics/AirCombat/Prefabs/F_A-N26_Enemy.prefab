@@ -1189,7 +1189,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e73cf40ca2ce2f14e902649931c221d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxRange: 100000
+  maxRange: 200000
   scanAngle: 120
   targetMask:
     serializedVersion: 2
@@ -2561,6 +2561,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   affilation: 1
   enemyAffilation: 0
+  objectType: 0
 --- !u!1 &8179002147083476611
 GameObject:
   m_ObjectHideFlags: 0

@@ -695,7 +695,7 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
+  m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
   m_Constraints: 0
@@ -759,10 +759,11 @@ MonoBehaviour:
   Roll: 0
   Flap: 0
   displayText: {fileID: 0}
-  missileLauncher: {fileID: 0}
-  radar: {fileID: 0}
+  missileLauncher: {fileID: 2062776580129445626}
+  radar: {fileID: 7284455241348222768}
   target: {fileID: 0}
   lockID: 0
+  myIFF: {fileID: 3707159743837038391}
 --- !u!114 &7760904972831982759
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -800,7 +801,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5526426945693736762}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e039c393e942081448899fba2f1355de, type: 3}
   m_Name: 
@@ -1284,6 +1285,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   affilation: 0
   enemyAffilation: 1
+  objectType: 0
 --- !u!1 &9168156554384907793
 GameObject:
   m_ObjectHideFlags: 0
@@ -1608,6 +1610,18 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 5468894955099775485}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &7284455241348222768 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3383047259660676813, guid: 530b7d371287487419a78bd346c13997,
+    type: 3}
+  m_PrefabInstance: {fileID: 5468894955099775485}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e73cf40ca2ce2f14e902649931c221d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &8846156424198587698
 PrefabInstance:
   m_ObjectHideFlags: 0
