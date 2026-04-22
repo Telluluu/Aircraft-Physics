@@ -6,5 +6,7 @@ namespace Gamelogic
 {
     public class GameManager : Singleton<GameManager>
     {
+        [Header("可视化")]
+        public RadarLockonUI radarLockonUI;
     }
 }

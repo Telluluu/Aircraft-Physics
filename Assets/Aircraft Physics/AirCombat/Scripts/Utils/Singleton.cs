@@ -31,7 +31,7 @@ namespace Gamelogic
                     {
                         if (_instance == null)
                         {
-                            _instance = FindObjectOfType<T>();
+                            _instance = Object.FindFirstObjectByType<T>();
                             if (_instance == null)
                             {
                                 GameObject go = new GameObject("Singleton " + typeof(T));
