@@ -102,7 +102,7 @@ public class DopplerRadar : MonoBehaviour
             if (isDopplerNotch || isClutterNotch)
             {
                 // 可选：在此处 Debug 显示脱锁原因
-                Debug.Log($"Radar: {name}, Target: {hit.name},Doppler Notch: {isDopplerNotch}, Clutter Notch: {isClutterNotch}, VT:{VT}, Relative Radial Velocity: {relativeRadialVelocity}");
+                //Debug.Log($"Radar: {name}, Target: {hit.name},Doppler Notch: {isDopplerNotch}, Clutter Notch: {isClutterNotch}, VT:{VT}, Relative Radial Velocity: {relativeRadialVelocity}");
                 Debug.DrawLine(transform.position, hit.transform.position, Color.red);
                 continue;
             }
@@ -110,7 +110,7 @@ public class DopplerRadar : MonoBehaviour
             // 5. 锁定成功
             newLockedTargets.Add(hit.transform);
             Debug.DrawLine(transform.position, hit.transform.position, Color.green);
-            Debug.Log($"Radar: {name}, Target: {hit.name},Doppler Notch: {isDopplerNotch}, Clutter Notch: {isClutterNotch}, Relative Radial Velocity: {relativeRadialVelocity}");
+            //Debug.Log($"Radar: {name}, Target: {hit.name},Doppler Notch: {isDopplerNotch}, Clutter Notch: {isClutterNotch}, Relative Radial Velocity: {relativeRadialVelocity}");
         }
         return newLockedTargets;
     }
