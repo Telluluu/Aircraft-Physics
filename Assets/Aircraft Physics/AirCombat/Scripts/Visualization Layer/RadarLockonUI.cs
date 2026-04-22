@@ -8,7 +8,7 @@ public class RadarLockonUI : MonoBehaviour
 
     public int maxPoolSize = 10;
 
-    public int selectedIndex = 0;
+    public int selectedIndex = -1;
     public List<Transform> targetsTransform = new List<Transform>();
     private List<LockonFrame> framePool = new List<LockonFrame>();
     private Camera mainCam;

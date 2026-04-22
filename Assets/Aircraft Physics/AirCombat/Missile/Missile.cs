@@ -4,13 +4,14 @@ using UnityEngine;
 
 public class Missile : MonoBehaviour
 {
-    public int speed = 60;
+    public float explosionRadius = 15f;
+    public float speed = 800f;
     public int downspeed = 30;
     public bool fully_active = false;
-    public int timebeforeactivition = 20;
-    public int timebeforebursting = 40;
-    public int timebeforedestruction = 450;
-    public int timealive;
+    public float timeStartActivition = 1;
+    public float timeStopBursting = 40;
+    public float timeBeforeDestruction = 100;
+    public float timeAlive;
     public GameObject target;
     public GameObject shooter;
     public Rigidbody projectilerb;
@@ -25,6 +26,9 @@ public class Missile : MonoBehaviour
     public GameObject smoke_position;
     public GameObject destroy_effect;
 
+    private bool isActivate = false;
+    private bool isBurstStarted = false;
+
     private void Start()
     {
         projectilerb = this.GetComponent<Rigidbody>();
@@ -37,7 +41,7 @@ public class Missile : MonoBehaviour
 
     public void SetMissile()
     {
-        timealive = 0;
+        timeAlive = 0;
         transform.rotation = shooter.transform.rotation;
         transform.Rotate(0, 90, 0);
         transform.position = shooter.transform.position;
@@ -47,7 +51,7 @@ public class Missile : MonoBehaviour
     {
         isactive = false;
         fully_active = false;
-        timealive = 0;
+        timeAlive = 0;
         smoke.transform.SetParent(null);
         smoke.Pause();
         smoke.transform.position = sleepposition;
@@ -90,6 +94,22 @@ public class Missile : MonoBehaviour
         }
     }
 
+    // 假设你的 IFF 逻辑已经挂在目标或导弹上
+    private void CheckProximityFuze()
+    {
+        // 只有在完全激活（fully_active）且有目标时才检测
+        if (!fully_active || target == null) return;
+
+        float dist = Vector3.Distance(transform.position, target.transform.position);
+
+        // 1. 基础距离判定
+        if (dist <= explosionRadius)
+        {
+            Destroy(target);
+            DestroyMe();
+        }
+    }
+
     private void FixedUpdate()
     {
         if (isactive)
@@ -98,31 +118,33 @@ public class Missile : MonoBehaviour
             {
                 DestroyMe();
             }
-            if (timealive == timebeforeactivition)
+            if (timeAlive <= timeStartActivition)
             {
-                fully_active = true;
-                thrust_sound.Play();
-            }
-            timealive++;
-            if (timealive < timebeforebursting)
-            {
+                if (fully_active == false)
+                {
+                    fully_active = true;
+                    thrust_sound.Play();
+                }
                 projectilerb.linearVelocity = transform.up * -1 * downspeed;
             }
-            if (timealive == timebeforebursting)
+            timeAlive += Time.fixedDeltaTime;
+            if (timeAlive > timeStartActivition && timeAlive <= timeStopBursting && !isBurstStarted)
             {
+                isBurstStarted = true;
                 smoke = (Instantiate(smoke_obj, smoke_position.transform.position, smoke_position.transform.rotation)).GetComponent<ParticleSystem>();
                 smoke.Play();
                 smoke.transform.SetParent(this.transform);
             }
-            if (timealive == timebeforedestruction)
+            if (timeAlive >= timeBeforeDestruction)
             {
                 DestroyMe();
             }
-            if (timealive >= timebeforebursting && timealive < timebeforedestruction)
+            if (timeAlive >= timeStartActivition && timeAlive < timeBeforeDestruction)
             {
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetpointer.transform.rotation, turnSpeed);
                 projectilerb.linearVelocity = transform.forward * speed;
             }
+            CheckProximityFuze();
         }
     }
 }

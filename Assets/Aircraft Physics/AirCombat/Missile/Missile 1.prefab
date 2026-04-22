@@ -9,9 +9,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6226565684819493851}
-  - component: {fileID: 2581061579181153309}
+  - component: {fileID: 1154389065680498426}
   m_Layer: 0
-  m_Name: missile_pointer
+  m_Name: MissilePointer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -32,7 +32,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 4662644170212574250}
   m_LocalEulerAnglesHint: {x: 0, y: 90, z: 90}
---- !u!114 &2581061579181153309
+--- !u!114 &1154389065680498426
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -41,10 +41,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 865028804372108694}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 588121caddfb8b34c80ebad9eeb475d5, type: 3}
+  m_Script: {fileID: 11500000, guid: 81f6f07850c5da743bef55122bb73723, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 0}
+  aircraftRadar: {fileID: 0}
+  missileRadar: {fileID: 6776670489054893160}
+  _isLocked: 0
 --- !u!1 &3479011742687757425
 GameObject:
   m_ObjectHideFlags: 0
@@ -55,9 +58,9 @@ GameObject:
   m_Component:
   - component: {fileID: 4662644170212574250}
   - component: {fileID: 5236604935004675993}
+  - component: {fileID: 7690243271814662144}
   - component: {fileID: 8939217965634654367}
   - component: {fileID: 1925228505416283128}
-  - component: {fileID: 1662284534740877807}
   m_Layer: 6
   m_Name: Missile 1
   m_TagString: homing_missile
@@ -112,6 +115,41 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 112
   m_CollisionDetection: 0
+--- !u!114 &7690243271814662144
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3479011742687757425}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4f46eaea82a6914080ff99f7c535fbc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  explosionRadius: 15
+  speed: 900
+  downspeed: 30
+  fully_active: 0
+  timeStartActivition: 1
+  timeStopBursting: 40
+  timeBeforeDestruction: 100
+  timeAlive: 0
+  target: {fileID: 0}
+  shooter: {fileID: 0}
+  projectilerb: {fileID: 5236604935004675993}
+  isactive: 0
+  sleepposition: {x: 0, y: 0, z: 0}
+  targetpointer: {fileID: 865028804372108694}
+  turnSpeed: 0.035
+  launch_sound: {fileID: 8939217965634654367}
+  thrust_sound: {fileID: 1925228505416283128}
+  smoke_obj: {fileID: 9155463838991273943, guid: db97ba35f680c914480ecc075d752dbf,
+    type: 3}
+  smoke: {fileID: 0}
+  smoke_position: {fileID: 6184213016499437251}
+  destroy_effect: {fileID: 4868538168526089871, guid: 7bcf29c8fbb433f4cbc27a4ae6ac2b79,
+    type: 3}
 --- !u!82 &8939217965634654367
 AudioSource:
   m_ObjectHideFlags: 0
@@ -308,41 +346,6 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
---- !u!114 &1662284534740877807
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3479011742687757425}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f051b6fa11d5f0e4eb39928d4c6d588c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  speed: 60
-  downspeed: 30
-  damage: 35
-  fully_active: 0
-  timebeforeactivition: 20
-  timebeforebursting: 40
-  timebeforedestruction: 450
-  timealive: 0
-  target: {fileID: 0}
-  shooter: {fileID: 0}
-  projectilerb: {fileID: 5236604935004675993}
-  isactive: 0
-  sleepposition: {x: 200, y: 200, z: 200}
-  targetpointer: {fileID: 865028804372108694}
-  turnSpeed: 0.035
-  launch_sound: {fileID: 8939217965634654367}
-  thrust_sound: {fileID: 1925228505416283128}
-  smoke_obj: {fileID: 9155463838991273943, guid: db97ba35f680c914480ecc075d752dbf,
-    type: 3}
-  smoke: {fileID: 0}
-  smoke_position: {fileID: 6184213016499437251}
-  destroy_effect: {fileID: 4868538168526089871, guid: 7bcf29c8fbb433f4cbc27a4ae6ac2b79,
-    type: 3}
 --- !u!1 &4234698369160390535
 GameObject:
   m_ObjectHideFlags: 0
@@ -456,7 +459,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3645988853337154929}
   m_Layer: 6
-  m_Name: smoke_position
+  m_Name: SmokePosition
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -528,8 +531,8 @@ MonoBehaviour:
     m_Bits: 1
   minDopplerVelocity: 20
   lockedTargets: []
-  isWoking: 0
-  iff: {fileID: 0}
+  isWorking: 1
+  iff: {fileID: 1433590921430931581}
 --- !u!1001 &5506184896431015445
 PrefabInstance:
   m_ObjectHideFlags: 0

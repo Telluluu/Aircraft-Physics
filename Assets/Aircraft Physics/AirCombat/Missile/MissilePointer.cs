@@ -13,7 +13,7 @@ public class MissilePointer : MonoBehaviour
     {
         if (target != null)
         {
-            _isLocked = aircraftRadar.CheckTarget(target.transform) && missileRadar.CheckTarget(target.transform);
+            _isLocked = aircraftRadar.CheckTarget(target.transform) || missileRadar.CheckTarget(target.transform);
         }
     }
 

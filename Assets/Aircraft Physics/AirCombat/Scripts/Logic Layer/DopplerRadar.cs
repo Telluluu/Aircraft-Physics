@@ -16,7 +16,7 @@ public class DopplerRadar : MonoBehaviour
 
     private Rigidbody rb;
 
-    public bool isWoking = true;
+    public bool isWorking = true;
 
     public IFF iff;
 
@@ -37,7 +37,7 @@ public class DopplerRadar : MonoBehaviour
 
     public void UpdateTargets()
     {
-        if (!isWoking) return;
+        if (!isWorking) return;
 
         List<Transform> currentScanned = ScanTargets();
 
@@ -68,7 +68,7 @@ public class DopplerRadar : MonoBehaviour
             var targetIFF = hit.transform.GetComponent<IFF>();
             if (targetIFF != null)
             {
-                if (iff.enemyAffilation != targetIFF.affilation)
+                if (targetIFF.affilation != iff.enemyAffilation || targetIFF.objectType == IFF.IFFObjectType.Missile)
                     continue;
             }
 

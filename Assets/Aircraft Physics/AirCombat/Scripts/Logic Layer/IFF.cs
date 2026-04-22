@@ -2,12 +2,19 @@ using UnityEngine;
 
 public class IFF : MonoBehaviour
 {
-    public enum IFFType
+    public enum IFFTeamType
     {
         BlueTeam,
         RedTeam
     }
 
-    public IFFType affilation;
-    public IFFType enemyAffilation;
+    public enum IFFObjectType
+    {
+        Aircraft,
+        Missile
+    }
+
+    public IFFTeamType affilation;
+    public IFFTeamType enemyAffilation;
+    public IFFObjectType objectType;
 }

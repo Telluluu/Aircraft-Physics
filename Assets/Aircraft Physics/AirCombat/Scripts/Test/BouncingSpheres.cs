@@ -50,7 +50,7 @@ public class BouncingSpheres : MonoBehaviour
                 rb.linearVelocity = Vector3.Reflect(rb.linearVelocity, normal).normalized * speed;
 
                 // 强制修正位置，防止卡在边界外
-                rb.position = transform.position + rb.position.normalized * radius;
+                rb.position = transform.position + (rb.position - transform.position).normalized * radius * 0.99f;
             }
 
             // 确保第一个球始终锁定在 XY 平面（Z轴归零）

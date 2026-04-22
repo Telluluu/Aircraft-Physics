@@ -5,7 +5,8 @@ public class PlayerController : AirplaneController
     public MissileLauncher missileLauncher;
     public DopplerRadar radar;
     public Transform target;
-    public int lockID = 0;
+    public int lockID = -1;
+    public IFF myIFF;
 
     protected override void Update()
     {
@@ -13,15 +14,17 @@ public class PlayerController : AirplaneController
         Roll = Input.GetAxis("Horizontal");
         Yaw = Input.GetAxis("Yaw");
 
-        Gamelogic.GameManager.Instance.radarLockonUI.SetTargets(radar.lockedTargets);
+        Gamelogic.GameManager.Instance.radarLockonUI.SetTargets(this.radar.lockedTargets);
         // 切换目标
         if (Input.GetKeyDown(KeyCode.Tab))
         {
-            if (radar.lockedTargets.Count == 0)
+            if (this.radar.lockedTargets.Count == 0)
             {
-                target = null;
+                this.target = null;
                 return;
             }
+            if (this.lockID == -1)
+                this.lockID = 0;
 
             lockID = (lockID + 1) % radar.lockedTargets.Count;
             Gamelogic.GameManager.Instance.radarLockonUI.selectedIndex = lockID;
@@ -31,7 +34,8 @@ public class PlayerController : AirplaneController
         // 发射导弹
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            missileLauncher.LaunchMissile(radar, target);
+            this.missileLauncher.ShootMissile(this.radar, this.target,
+             this.myIFF.affilation, this.myIFF.enemyAffilation);
         }
         // 节流阀
         if (Input.mouseScrollDelta.y != 0)

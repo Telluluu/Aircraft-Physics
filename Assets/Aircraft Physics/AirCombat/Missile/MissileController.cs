@@ -45,7 +45,7 @@ public class MissileController : MonoBehaviour
             if (_step == 0 && Vector3.Distance(transform.position, target.position) < missileRadar.maxRange)
             {
                 _step = 1;
-                if (missileRadar != null) missileRadar.isWoking = true;
+                if (missileRadar != null) missileRadar.isWorking = true;
             }
 
             // 锁定判定：由外部雷达脚本决定
