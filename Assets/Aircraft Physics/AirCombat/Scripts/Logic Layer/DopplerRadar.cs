@@ -3,9 +3,6 @@ using UnityEngine;
 
 public class DopplerRadar : MonoBehaviour
 {
-    [Header("可视化")]
-    public RadarLockonUI radarLockonUI;
-
     [Header("雷达设置")]
     public float maxRange = 2000f;       // 探测距离
 
@@ -21,6 +18,8 @@ public class DopplerRadar : MonoBehaviour
 
     public bool isWoking = true;
 
+    public IFF iff;
+
     private void Start()
     {
         rb = GetComponentInParent<Rigidbody>();
@@ -28,14 +27,7 @@ public class DopplerRadar : MonoBehaviour
 
     private void Update()
     {
-        if (radarLockonUI != null)
-            radarLockonUI.SetTargets(lockedTargets);
-    }
-
-    private void FixedUpdate()
-    {
-        if (isWoking)
-            lockedTargets = ScanTargets();
+        UpdateTargets();
     }
 
     public bool CheckTarget(Transform target)
@@ -43,7 +35,27 @@ public class DopplerRadar : MonoBehaviour
         return lockedTargets.Contains(target);
     }
 
-    public List<Transform> ScanTargets()
+    public void UpdateTargets()
+    {
+        if (!isWoking) return;
+
+        List<Transform> currentScanned = ScanTargets();
+
+        // 1. 移除丢失的目标 (List 内部会遍历处理) 这里的 lambda 表达式会检查旧目标是否还在新扫描结果中，或者是否已被销毁(null)
+        lockedTargets.RemoveAll(t => t == null || !currentScanned.Contains(t));
+
+        // 2. 添加新增的目标
+        for (int i = 0; i < currentScanned.Count; i++)
+        {
+            Transform t = currentScanned[i];
+            if (!lockedTargets.Contains(t))
+            {
+                lockedTargets.Add(t);
+            }
+        }
+    }
+
+    private List<Transform> ScanTargets()
     {
         List<Transform> newLockedTargets = new List<Transform>();
         Collider[] potentialTargets = Physics.OverlapSphere(transform.position, maxRange, targetMask);
@@ -52,6 +64,14 @@ public class DopplerRadar : MonoBehaviour
 
         foreach (var hit in potentialTargets)
         {
+            // 敌我识别
+            var targetIFF = hit.transform.GetComponent<IFF>();
+            if (targetIFF != null)
+            {
+                if (iff.enemyAffilation != targetIFF.affilation)
+                    continue;
+            }
+
             Vector3 relativePos = hit.transform.position - transform.position;
             float distance = relativePos.magnitude;
             Vector3 directionToTarget = relativePos / distance;
@@ -60,7 +80,7 @@ public class DopplerRadar : MonoBehaviour
             float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
             if (angleToTarget > scanAngle / 2f) continue;
 
-            Rigidbody targetRb = hit.GetComponent<Rigidbody>();
+            Rigidbody targetRb = hit.GetComponentInParent<Rigidbody>();
             Vector3 VT = (targetRb != null) ? targetRb.linearVelocity : Vector3.zero;
 
             // 2. 径向速度计算
@@ -69,19 +89,20 @@ public class DopplerRadar : MonoBehaviour
             float relativeRadialVelocity = vT_radial - vM_radial; // 两者相对径向速度（接近速度）
 
             // 3. 判定是否为“下视”状态 (视线向下倾斜)
-            bool isLookDown = directionToTarget.y < -0.05f;
+            bool isLookDown = directionToTarget.y < -0.5f;
 
             // 4. 盲区判定逻辑
             // A: 相对速度盲区 (同速同向，Doppler Notch)
             bool isDopplerNotch = Mathf.Abs(relativeRadialVelocity) < minDopplerVelocity;
 
             // B: 地杂波盲区 (3-9机动，目标相对地面径向速度接近0，Clutter Notch) 只有在下视且目标相对地面的径向速度极小时发生
-            bool isClutterNotch = isLookDown && (Mathf.Abs(vT_radial) < minDopplerVelocity);
+            bool isClutterNotch = (Mathf.Abs(vT_radial) < minDopplerVelocity);
 
             // 如果掉进任何一个盲区，则无法锁定
             if (isDopplerNotch || isClutterNotch)
             {
                 // 可选：在此处 Debug 显示脱锁原因
+                Debug.Log($"Radar: {name}, Target: {hit.name},Doppler Notch: {isDopplerNotch}, Clutter Notch: {isClutterNotch}, VT:{VT}, Relative Radial Velocity: {relativeRadialVelocity}");
                 Debug.DrawLine(transform.position, hit.transform.position, Color.red);
                 continue;
             }
@@ -89,6 +110,7 @@ public class DopplerRadar : MonoBehaviour
             // 5. 锁定成功
             newLockedTargets.Add(hit.transform);
             Debug.DrawLine(transform.position, hit.transform.position, Color.green);
+            Debug.Log($"Radar: {name}, Target: {hit.name},Doppler Notch: {isDopplerNotch}, Clutter Notch: {isClutterNotch}, Relative Radial Velocity: {relativeRadialVelocity}");
         }
         return newLockedTargets;
     }
