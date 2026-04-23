@@ -16,6 +16,10 @@ public class JetNpcController : AirplaneController
 
     private Coroutine maneuverRoutine; // 用于记录当前运行的机动任务
 
+    public IFF myIFF;
+    public DopplerRadar radar;
+    public MissileLauncher missileLauncher;
+
     protected override void Update()
     {
         // 基础动力维持
