@@ -34,8 +34,9 @@ public class PlayerController : AirplaneController
         // 发射导弹
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            this.missileLauncher.ShootMissile(this.radar, this.target,
-             this.myIFF.affilation, this.myIFF.enemyAffilation);
+            if (target != null)
+                this.missileLauncher.ShootMissile(this.radar, this.target,
+                 this.myIFF.affilation, this.myIFF.enemyAffilation);
         }
         // 节流阀
         if (Input.mouseScrollDelta.y != 0)
