@@ -23,7 +23,8 @@ public class JetNpcController : AirplaneController
     protected override void Update()
     {
         // 基础动力维持
-        base.thrustPercent = 1.0f;
+        if (isCombatMode)
+            ControlThrottle(combatSpeed);
         float currentAlt = transform.position.y;
         if (Input.GetKeyDown(KeyCode.V))
         {
@@ -42,8 +43,65 @@ public class JetNpcController : AirplaneController
         {
             maneuverRoutine = StartCoroutine(Maneuver_Relative(175f, 180f, 5f));
         }
-        if (base.rb.linearVelocity.magnitude < 300f)
-            Debug.Log("Speed = " + base.rb.linearVelocity.magnitude);
+        //if (base.rb.linearVelocity.magnitude < 300f)
+        //    Debug.Log("Speed = " + base.rb.linearVelocity.magnitude);
+    }
+
+    /// <summary>
+    /// 控速核心函数
+    /// </summary>
+    /// <param name="targetSpeed">期望维持的目标速度（传入 220 到 500 之间的值）</param>
+    public void ControlThrottle(float targetSpeed)
+    {
+        // 安全限幅：确保传入的目标速度在你的 220~500 范围内
+        targetSpeed = Mathf.Clamp(targetSpeed, 220f, 500f);
+
+        // 获取当前飞机的真实空速
+        float currentSpeed = rb.linearVelocity.magnitude;
+
+        // 计算速度误差
+        float speedError = targetSpeed - currentSpeed;
+
+        // 固定的推力调整速率（每秒最多增减 0.5，防止推力剧烈抖动导致物理引擎打摆子）
+        float throttleChangeRate = 0.5f;
+
+        if (Mathf.Abs(speedError) > 5f) // 允许 5 码 的死区，避免油门过于敏感
+        {
+            // 如果当前速度低于目标，增加推力；反之减小推力
+            float targetThrust = base.thrustPercent + Mathf.Sign(speedError) * throttleChangeRate * Time.deltaTime;
+
+            // 限制油门在 0.0 (空闲) 到 1.0 (满油门) 之间
+            base.thrustPercent = Mathf.Clamp(targetThrust, 0.0f, 1.0f);
+        }
+
+        // 防失速/防超速
+        if (currentSpeed < 180f)
+        {
+            base.thrustPercent = 1.0f; // 极端低速下强制满油门门防止栽机
+        }
+        else if (currentSpeed > 550f)
+        {
+            base.thrustPercent = 0.0f; // 极端高速下强制关油门
+        }
+    }
+
+    /// <summary>
+    /// 无边界防飞丢的原地盘旋巡航
+    /// </summary>
+    public void CruiseMode()
+    {
+        // 1. 让飞机平稳地向右压坡度并转弯（利用你现有的横滚和偏航接口） 传入一个固定的右转矢量：当前右方和前方的中间值，让它一直转弯
+        Vector3 circleDir = (transform.forward + transform.right).normalized;
+        //ApplyYawTask(circleDir);
+
+        // 2. 维持当前高度（防止巡航时栽下去）
+        float targetCruiseAltitude = 2000f; // 设定一个初始高度
+        float altitudeError = targetCruiseAltitude - transform.position.y;
+        float targetPitch = Mathf.Clamp(altitudeError * 0.1f, -10f, 10f);
+        ApplyRollTask(0f);
+        ApplyPitchTask(targetPitch);
+
+        // 3. 稍微给一点点横滚维持转弯姿态（可选，如果只用 Yaw 能转动，这里也可以直接改平） ApplyRollTask(15f); // 轻轻向右倾斜 15 度
     }
 
     public IEnumerator Maneuver_Relative(float targetRoll, float pitchDelta, float targetG)
