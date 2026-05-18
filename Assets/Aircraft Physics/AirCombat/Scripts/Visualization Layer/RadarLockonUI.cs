@@ -61,7 +61,11 @@ public class RadarLockonUI : MonoBehaviour
                     var frame = framePool[i];
                     if (frame != null)
                     {
-                        frame.SetText(targetsTransform[i].GetComponent<Rigidbody>().linearVelocity.magnitude, Vector3.Distance(targetsTransform[i].position, mainCam.transform.position));
+                        var targetRb = targetsTransform[i].GetComponent<Rigidbody>();
+                        if (targetRb == null)
+                            targetRb = targetsTransform[i].GetComponentInParent<Rigidbody>();
+                        if (targetRb != null)
+                            frame.SetText(targetRb.linearVelocity.magnitude, Vector3.Distance(targetsTransform[i].position, mainCam.transform.position));
                         if (i == selectedIndex)
                             frame.Selected();
                         else
