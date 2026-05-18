@@ -5220,6 +5220,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: F/A-N26_Player
       objectReference: {fileID: 0}
+    - target: {fileID: 6210688250135155084, guid: b36415544e30a9e49935947910bcf894,
+        type: 3}
+      propertyPath: target
+      value: 
+      objectReference: {fileID: 7283391871267577399}
     - target: {fileID: 6275485500056557124, guid: b36415544e30a9e49935947910bcf894,
         type: 3}
       propertyPath: displayText
