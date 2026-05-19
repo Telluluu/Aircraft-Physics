@@ -17,6 +17,9 @@ public class BouncingSpheres : MonoBehaviour
             // 创建小球
             GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             Rigidbody rb = sphere.AddComponent<Rigidbody>();
+            IFF iff = sphere.AddComponent<IFF>();
+            iff.affilation = IFF.IFFTeamType.BlueTeam;
+            iff.enemyAffilation = IFF.IFFTeamType.RedTeam;
 
             // 基础配置
             rb.useGravity = false;
@@ -42,6 +45,8 @@ public class BouncingSpheres : MonoBehaviour
     {
         foreach (Rigidbody rb in sphereRbs)
         {
+            if (rb == null) continue;
+
             // 距离检测
             if ((rb.position - transform.position).magnitude > radius)
             {
