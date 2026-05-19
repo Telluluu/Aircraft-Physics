@@ -2,6 +2,7 @@ using UnityEngine;
 using BehaviorDesigner.Runtime;
 using BehaviorDesigner.Runtime.Tasks;
 
+[TaskCategory("BVR")]
 public class CheckTartics : Conditional
 {
     private int caseValue;
@@ -17,15 +18,15 @@ public class CheckTartics : Conditional
 
     public override void OnStart()
     {
-        if (rb == null || radar == null)
+        if (rb == null || radar == null || radar.lockedTargets.Count == 0)
             return;
 
         Rigidbody targetRb = radar.lockedTargets[0].GetComponent<Rigidbody>();
         float myVelocity = rb.linearVelocity.magnitude;
         float targetVelocity = targetRb.linearVelocity.magnitude;
 
-        Debug.Log(gameObject.name + ":" + myVelocity + "m/s");
-        Debug.Log(targetRb.gameObject.name + ":" + targetVelocity + "m/s");
+        //Debug.Log(gameObject.name + ":" + myVelocity + "m/s");
+        //Debug.Log(targetRb.gameObject.name + ":" + targetVelocity + "m/s");
 
         /*
          * 目标能量远小于自身，LLR 发射-脱离-追击；caseValue = 0
