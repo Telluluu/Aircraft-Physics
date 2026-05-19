@@ -14,7 +14,8 @@ public class JetNpcController : AirplaneController
     [Header("测试用变量")]
     public bool isCombatMode = false;
 
-    private Coroutine maneuverRoutine; // 用于记录当前运行的机动任务
+    public Coroutine maneuverRoutine; // 用于记录当前运行的机动任务
+    public bool isManeuvering = false;
 
     public IFF myIFF;
     public DopplerRadar radar;
@@ -106,6 +107,7 @@ public class JetNpcController : AirplaneController
 
     public IEnumerator Maneuver_Relative(float targetRoll, float pitchDelta, float targetG)
     {
+        isManeuvering = true;
         // 阶段 1：对齐横滚
         while (Mathf.Abs(Mathf.DeltaAngle(GetCurrentRoll(), targetRoll)) > 2f)
         {
@@ -133,7 +135,7 @@ public class JetNpcController : AirplaneController
 
             // 判定剩余角度（用于平滑减速）
             float remainingAngle = Vector3.Angle(currentForward, targetForward);
-
+            Debug.Log("remaningAngle = " + remainingAngle);
             // 检查是否已经越过了目标点 如果当前帧与目标向量的夹角开始变大，则说明已经错过最接近点 这里简单处理：只要进入 1度 范围内就认为完成
             if (remainingAngle < 1.0f) break;
 
@@ -146,6 +148,7 @@ public class JetNpcController : AirplaneController
         }
 
         ResetInputs();
+        isManeuvering = false;
     }
 
     public void ApplyRollTask(float targetBank)
