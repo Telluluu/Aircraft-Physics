@@ -128,12 +128,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   explosionRadius: 15
-  speed: 900
+  speed: 1200
   downspeed: 30
+  dragDecel: 15
   fully_active: 0
   timeStartActivition: 1
-  timeStopBursting: 40
-  timeBeforeDestruction: 100
+  timeStopBursting: 10
+  timeBeforeDestruction: 80
   timeAlive: 0
   target: {fileID: 0}
   shooter: {fileID: 0}

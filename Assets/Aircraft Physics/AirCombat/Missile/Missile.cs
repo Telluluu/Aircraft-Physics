@@ -5,12 +5,13 @@ using UnityEngine;
 public class Missile : MonoBehaviour
 {
     public float explosionRadius = 15f;
-    public float speed = 800f;
+    public float speed = 1200f;
     public int downspeed = 30;
+    public float dragDecel = 15f;
     public bool fully_active = false;
-    public float timeStartActivition = 1;
-    public float timeStopBursting = 40;
-    public float timeBeforeDestruction = 100;
+    public float timeStartActivition = 0.5f;
+    public float timeStopBursting = 10;
+    public float timeBeforeDestruction = 80;
     public float timeAlive;
     public GameObject target;
     public GameObject shooter;
@@ -142,7 +143,24 @@ public class Missile : MonoBehaviour
             if (timeAlive >= timeStartActivition && timeAlive < timeBeforeDestruction)
             {
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetpointer.transform.rotation, turnSpeed);
-                projectilerb.linearVelocity = transform.forward * speed;
+                // --- 新增：动态速度衰减逻辑 ---
+                float currentSpeed = speed;
+
+                if (timeAlive > timeStopBursting)
+                {
+                    // 失去动力后的持续时间
+                    float timeWithoutThrust = timeAlive - timeStopBursting;
+                    // 速度线性下降：极速 - (衰减率 * 失去动力时间)
+                    currentSpeed = speed - (dragDecel * timeWithoutThrust);
+
+                    // 设置滑翔下限速度（比如最低不低于 150m/s，防止完全没有升力）
+                    if (currentSpeed < 150f)
+                    {
+                        currentSpeed = 150f;
+                    }
+                }
+
+                projectilerb.linearVelocity = transform.forward * currentSpeed;
             }
             CheckProximityFuze();
         }
