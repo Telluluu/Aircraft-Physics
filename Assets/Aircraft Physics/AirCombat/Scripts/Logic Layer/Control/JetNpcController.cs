@@ -114,7 +114,7 @@ public class JetNpcController : AirplaneController
             ApplyRollTask(targetRoll);
             base.Pitch = 0f;
             base.Yaw = 0f;
-            Debug.Log("CurrentRoll = " + GetCurrentRoll());
+            //Debug.Log("CurrentRoll = " + GetCurrentRoll());
             yield return null;
         }
 
