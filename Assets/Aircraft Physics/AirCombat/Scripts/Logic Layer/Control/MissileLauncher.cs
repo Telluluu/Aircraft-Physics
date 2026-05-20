@@ -1,14 +1,17 @@
 using HomingMissile;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MissileLauncher : MonoBehaviour
 {
     public GameObject missilePrefab;
+    public List<GameObject> missiles;
 
     public void ShootMissile(DopplerRadar aircraftRadar, Transform targetTrans,
         IFF.IFFTeamType shooterIFF, IFF.IFFTeamType targetIFF)
     {
         GameObject go_missile = Instantiate(missilePrefab, transform.position, transform.rotation);
+        missiles.Add(go_missile);
         Missile missile = go_missile.GetComponent<Missile>();
         missile.target = targetTrans.gameObject;
         missile.shooter = this.gameObject;
