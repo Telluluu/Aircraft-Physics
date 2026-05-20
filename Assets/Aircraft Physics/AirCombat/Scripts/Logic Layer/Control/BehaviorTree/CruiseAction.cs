@@ -26,17 +26,16 @@ public class CruiseAction : Action
 
     public override TaskStatus OnUpdate()
     {
-        if (npcController == null || radar == null)
+        if (npcController == null || radar == null || radar.lockedTargets.Count > 0)
             return TaskStatus.Failure;
-        if (radar.lockedTargets.Count > 0)
-            return TaskStatus.Success;
+
         timer -= Time.deltaTime;
 
         if (timer <= 0f)
         {
-            if (rb.linearVelocity.magnitude >= npcController.cruiseSpeed - 20f)
+            if (rb.linearVelocity.magnitude >= npcController.cruiseSpeed - 15f)
                 return TaskStatus.Success;
-            timer = duration;
+            timer = duration / 2;
         }
         npcController.ControlThrottle(npcController.cruiseSpeed);
         npcController.CruiseMode();
