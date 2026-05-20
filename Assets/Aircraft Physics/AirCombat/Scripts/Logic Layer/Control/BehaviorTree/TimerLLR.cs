@@ -26,7 +26,7 @@ public class TimerLLR : Action
         if (remainingTime <= 0f)
         {
             // 未被锁定则转热追击，否则保持冷向
-            if (gamerRadar.CheckTarget(gameObject.transform) == false)
+            if (gamerRadar.CheckTarget(gameObject.transform.Find("Collision")) == false)
                 return TaskStatus.Success;
             else
                 return TaskStatus.Failure;
