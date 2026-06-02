@@ -1312,12 +1312,15 @@ MonoBehaviour:
 
     FLAPS TOGGLE - F
 
-    BRAKES
-    TOGGLE - B
+    THROTTLE
+    - MOUSE WHEEL
+
+    BRAKES TOGGLE - B
 
     LAUNCH MISSILE - Space
 
-    CHOOSE TARGET - Tab'
+    CHOOSE
+    TARGET - Tab'
 --- !u!222 &542925209
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -29279,8 +29282,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 256.2, y: -170.34}
-  m_SizeDelta: {x: 476.716, y: 299.32}
+  m_AnchoredPosition: {x: 256.2, y: -186.028}
+  m_SizeDelta: {x: 476.716, y: 330.695}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2106019378
 MonoBehaviour:
