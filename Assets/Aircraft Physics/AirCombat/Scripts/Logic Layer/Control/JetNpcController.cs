@@ -23,6 +23,8 @@ public class JetNpcController : AirplaneController
 
     protected override void Update()
     {
+
+
         // 基础动力维持
         if (isCombatMode)
             ControlThrottle(combatSpeed);

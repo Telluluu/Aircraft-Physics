@@ -106,7 +106,8 @@ public class Missile : MonoBehaviour
         // 1. 基础距离判定
         if (dist <= explosionRadius)
         {
-            Destroy(target);
+            target.transform.parent.gameObject.SetActive(false);
+            Destroy(target.transform.parent.gameObject);
             DestroyMe();
         }
     }

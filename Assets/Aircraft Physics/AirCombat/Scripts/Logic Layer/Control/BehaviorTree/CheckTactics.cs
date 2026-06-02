@@ -21,7 +21,7 @@ public class CheckTartics : Conditional
         if (rb == null || radar == null || radar.lockedTargets.Count == 0)
             return;
 
-        Rigidbody targetRb = radar.lockedTargets[0].GetComponent<Rigidbody>();
+        Rigidbody targetRb = radar.lockedTargets[0].parent.GetComponent<Rigidbody>();
         float myVelocity = rb.linearVelocity.magnitude;
         float targetVelocity = targetRb.linearVelocity.magnitude;
 

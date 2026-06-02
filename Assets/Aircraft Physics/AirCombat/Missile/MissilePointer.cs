@@ -19,7 +19,7 @@ public class MissilePointer : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (_isLocked)
+        if (_isLocked && target != null)
             transform.LookAt(target.transform.position);
     }
 }
